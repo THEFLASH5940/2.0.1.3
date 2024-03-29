@@ -15,7 +15,7 @@ struct cleo_addon_ifs_t
     int         (*ValueForGame)(int for3, int forvc, int forsa, int forlcs, int forvcs);
     void        (*ThreadJump)(void* handle, int offset);
     void        (*SkipUnusedParameters)(void *handle); // different from SkipParamListEnd
-    uint8_t*    (*GetScriptPC)(void *handle);
+    uint8_t*    (*GetScriptPC)(void *handle); // this contains a real code IN ALL GAMES
     void        (*PushStack)(void *handle);
     void        (*PopStack)(void *handle);
     bool&       (*GetCond)(void *handle);
@@ -32,4 +32,6 @@ struct cleo_addon_ifs_t
     uint8_t     (*Read1Byte_NoSkip)(void* handle);
     uint16_t    (*Read2Bytes_NoSkip)(void* handle);
     uint32_t    (*Read4Bytes_NoSkip)(void* handle);
+    int*        (*GetLocalVars)(void* handle);
+    uint8_t*&   (*GetPC)(void *handle); // this contains a real code ONLY IN GTASA (maybe LCS too), used for thread jumping &etc
 };

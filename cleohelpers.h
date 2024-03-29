@@ -362,20 +362,24 @@ inline uint32_t Read4Bytes(void* handle)
     Skip4Bytes(handle);
     return theseBytes;
 }
-inline char* CLEO_ReadStringEx(void* handle, char* buf, size_t size)
+inline char* CLEO_ReadStringEx(void* handle, char* buf = NULL, size_t size = 0)
 {
     uint8_t type = Read1Byte_NoSkip(handle);
 
     static char newBuf[MAX_STR_LEN];
-    if(!buf || size < 1) buf = (char*)newBuf;
+    if(!buf) buf = (char*)newBuf;
+    if(size < 1) size = MAX_STR_LEN;
 
     switch(type)
     {
         default:
-        //case SCRIPT_PARAM_STATIC_INT_8BITS:
-        //case SCRIPT_PARAM_STATIC_INT_16BITS:
-            // They cant hold any info in 'em
-            return NULL;
+            return NULL; // ok, what's left?
+
+        case SCRIPT_PARAM_STATIC_INT_8BITS:
+        case SCRIPT_PARAM_STATIC_INT_16BITS:
+            buf[0] = (char)cleo->ReadParam(handle)->i;
+            buf[1] = 0;
+            return buf;
 
         case SCRIPT_PARAM_STATIC_INT_32BITS:
         case SCRIPT_PARAM_GLOBAL_NUMBER_VARIABLE:
@@ -408,9 +412,9 @@ inline char* CLEO_ReadStringEx(void* handle, char* buf, size_t size)
         case SCRIPT_PARAM_GLOBAL_SHORT_STRING_ARRAY:
         case SCRIPT_PARAM_LOCAL_SHORT_STRING_ARRAY:
         {
-            size = (size > SHORT_STRING_SIZE) ? SHORT_STRING_SIZE : size;
+            size = ((size > SHORT_STRING_SIZE) ? SHORT_STRING_SIZE : size) - 1;
             strncpy(buf, (char*)cleo->GetPointerToScriptVar(handle), size);
-            buf[size-1] = 0;
+            buf[size] = 0;
             return buf;
         }
 
@@ -419,9 +423,9 @@ inline char* CLEO_ReadStringEx(void* handle, char* buf, size_t size)
 
         case SCRIPT_PARAM_STATIC_LONG_STRING:
             Skip1Byte(handle);
-            size = (size > LONG_STRING_SIZE) ? LONG_STRING_SIZE : size;
+            size = ((size > LONG_STRING_SIZE) ? LONG_STRING_SIZE : size) - 1;
             strncpy(buf, (char*)GetRealPC(handle), size);
-            buf[size-1] = 0;
+            buf[size] = 0;
             SkipBytes(handle, LONG_STRING_SIZE);
             return buf;
 
@@ -430,9 +434,9 @@ inline char* CLEO_ReadStringEx(void* handle, char* buf, size_t size)
         case SCRIPT_PARAM_GLOBAL_LONG_STRING_ARRAY:
         case SCRIPT_PARAM_LOCAL_LONG_STRING_ARRAY:
         {
-            size = (size > LONG_STRING_SIZE) ? LONG_STRING_SIZE : size;
+            size = ((size > LONG_STRING_SIZE) ? LONG_STRING_SIZE : size) - 1;
             strncpy(buf, (char*)cleo->GetPointerToScriptVar(handle), size);
-            buf[size-1] = 0;
+            buf[size] = 0;
             return buf;
         }
     }
@@ -449,23 +453,23 @@ inline void CLEO_WriteStringEx(void* handle, const char* buf)
             strcpy(dst, buf);
             break;
 
-        case 0x0A:
-        case 0x0B:
-        case 0x0C:
-        case 0x0D:
+        case SCRIPT_PARAM_GLOBAL_SHORT_STRING_VARIABLE:
+        case SCRIPT_PARAM_LOCAL_SHORT_STRING_VARIABLE:
+        case SCRIPT_PARAM_GLOBAL_SHORT_STRING_ARRAY:
+        case SCRIPT_PARAM_LOCAL_SHORT_STRING_ARRAY:
         {
             dst = (char*)cleo->GetPointerToScriptVar(handle);
-            strncpy(dst, buf, 7); dst[7] = 0;
+            strncpy(dst, buf, SHORT_STRING_SIZE-1); dst[SHORT_STRING_SIZE-1] = 0;
             break;
         }
 
-        case 0x10:
-        case 0x11:
-        case 0x12:
-        case 0x13:
+        case SCRIPT_PARAM_GLOBAL_LONG_STRING_VARIABLE:
+        case SCRIPT_PARAM_LOCAL_LONG_STRING_VARIABLE:
+        case SCRIPT_PARAM_GLOBAL_LONG_STRING_ARRAY:
+        case SCRIPT_PARAM_LOCAL_LONG_STRING_ARRAY:
         {
             dst = (char*)cleo->GetPointerToScriptVar(handle);
-            strncpy(dst, buf, 15); dst[15] = 0;
+            strncpy(dst, buf, LONG_STRING_SIZE-1); dst[LONG_STRING_SIZE-1] = 0;
             break;
         }
     }
@@ -473,7 +477,7 @@ inline void CLEO_WriteStringEx(void* handle, const char* buf)
 inline char* CLEO_GetStringPtr(void* handle)
 {
     uint8_t byte = Read1Byte_NoSkip(handle);
-    if(byte > 8)
+    if(byte >= SCRIPT_PARAM_STATIC_SHORT_STRING)
     {
         return (char*)cleo->GetPointerToScriptVar(handle);
     }
@@ -490,17 +494,19 @@ inline uint32_t CLEO_GetStringPtrMaxSize(void* handle)
         default:
             return MAX_STR_LEN;
 
-        case 0x0A:
-        case 0x0B:
-        case 0x0C:
-        case 0x0D:
-            return 8;
+        case SCRIPT_PARAM_STATIC_SHORT_STRING:
+        case SCRIPT_PARAM_GLOBAL_SHORT_STRING_VARIABLE:
+        case SCRIPT_PARAM_LOCAL_SHORT_STRING_VARIABLE:
+        case SCRIPT_PARAM_GLOBAL_SHORT_STRING_ARRAY:
+        case SCRIPT_PARAM_LOCAL_SHORT_STRING_ARRAY:
+            return SHORT_STRING_SIZE;
 
-        case 0x10:
-        case 0x11:
-        case 0x12:
-        case 0x13:
-            return 16;
+        case SCRIPT_PARAM_STATIC_LONG_STRING:
+        case SCRIPT_PARAM_GLOBAL_LONG_STRING_VARIABLE:
+        case SCRIPT_PARAM_LOCAL_LONG_STRING_VARIABLE:
+        case SCRIPT_PARAM_GLOBAL_LONG_STRING_ARRAY:
+        case SCRIPT_PARAM_LOCAL_LONG_STRING_ARRAY:
+            return LONG_STRING_SIZE;
     }
 }
 // https://github.com/cleolibrary/CLEO4/blob/efe00ef49945a85012cc2938c27ff82cccea5866/source/CCustomOpcodeSystem.cpp#L462
@@ -578,11 +584,11 @@ inline int CLEO_FormatString(void* handle, char *str, size_t len, const char *fo
             {
                 case 's':
                 {
+                    *fmta++ = *iter;
+                    *fmta++ = 0;
                     static const char none[] = "(null)";
                     const char *astr = CLEO_ReadStringEx(handle, readbuf, sizeof(readbuf));
                     const char *striter = astr ? astr : none;
-                    *fmta++ = *iter++;
-                    *fmta++ = 0;
                     snprintf(bufa, sizeof(bufa), fmtbufa, striter); striter = bufa;
                     while (*striter)
                     {
@@ -593,8 +599,7 @@ inline int CLEO_FormatString(void* handle, char *str, size_t len, const char *fo
                 }
                 case 'c':
                 {
-                    if (written++ >= len) return -1;
-                    *fmta++ = *iter++;
+                    *fmta++ = *iter;
                     *fmta++ = 0;
                     snprintf(bufa, sizeof(bufa), fmtbufa, (char)cleo->ReadParam(handle)->i);
                     const char *striter = bufa;
@@ -610,9 +615,13 @@ inline int CLEO_FormatString(void* handle, char *str, size_t len, const char *fo
                     /* For non wc types, use system sprintf and append to wide char output */
                     /* FIXME: for unrecognised types, should ignore % when printing */
                     char *bufaiter = bufa;
-                    if (*iter == 'p' || *iter == 'P')
+                    if (*iter == 'p')
                     {
-                        sprintf(bufaiter, "%08X", cleo->ReadParam(handle)->i);
+                        sprintf(bufaiter, "%08x", cleo->ReadParam(handle)->u);
+                    }
+                    else if (*iter == 'P')
+                    {
+                        sprintf(bufaiter, "%08X", cleo->ReadParam(handle)->u);
                     }
                     else
                     {
@@ -627,7 +636,7 @@ inline int CLEO_FormatString(void* handle, char *str, size_t len, const char *fo
                         }
                         else
                         {
-                            sprintf(bufaiter, fmtbufa, (void*)(cleo->ReadParam(handle)->i));
+                            sprintf(bufaiter, fmtbufa, cleo->ReadParam(handle)->i);
                         }
                     }
                     while (*bufaiter)
@@ -662,15 +671,14 @@ inline bool IsCLEORelatedGXTKey(char* gxtLabel)
 }
 inline uint16_t GetScmFunc(void* handle)
 {
-    return *(uint16_t*)((uintptr_t)handle + ValueForGame(0, 0x2E, 0x3A, 0, 0));
+    return *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0));
 }
 inline void SetScmFunc(void* handle, uint16_t idx)
 {
-    *(uint16_t*)((uintptr_t)handle + ValueForGame(0, 0x2E, 0x3A, 0, 0)) = idx;
+    *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0)) = idx;
 }
 inline void SkipUnusedParameters(void *thread)
 {
-    while(*(cleo->GetGameIdentifier() == GTASA ? GetPC(thread) : GetPC_CLEO(thread)))
-        cleo->ReadParam(thread);
-    GetPC(thread) += 1;
+    while(Read1Byte(thread) != 0) cleo->ReadParam(thread);
+    Skip1Byte(thread);
 }

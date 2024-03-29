@@ -284,6 +284,8 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.Read1Byte_NoSkip =       Read1Byte_NoSkip;
     cleo_addon_ifs.Read2Bytes_NoSkip =      Read2Bytes_NoSkip;
     cleo_addon_ifs.Read4Bytes_NoSkip =      Read4Bytes_NoSkip;
+    cleo_addon_ifs.GetLocalVars =           GetLocalVars;
+    cleo_addon_ifs.GetPC =                  GetPC;
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
     HOOK(ProcessOneCommand, cleo->GetMainLibrarySymbol("_ZN14CRunningScript17ProcessOneCommandEv"));
     logger->Info("CLEO Addon Initialized!");
