@@ -135,6 +135,7 @@ extern "C" __attribute__((target("thumb-mode"))) __attribute__((naked)) void Opc
 }
 
 void* g_pForceInterrupt = NULL;
+void* pocSym;
 DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
 {
     int8_t retCode = ProcessOneCommand(handle);
@@ -250,6 +251,8 @@ extern "C" void OnModPreLoad()
     RegisterInterface("CLEO", cleo);
     logger->Info("CLEO Initialized!");
 
+    pocSym = cleo->GetMainLibrarySymbol("_ZN14CRunningScript17ProcessOneCommandEv");
+
     cleo_addon_ifs.GetInterfaceVersion = []() -> uint32_t
     {
         return 1;
@@ -272,6 +275,14 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.GetLogicalOp =           GetLogicalOp;
     cleo_addon_ifs.Interrupt =              [](void *handle)
     {
+        static bool bDidPatch = false;
+        if(!bDidPatch)
+        {
+            // There is no reason in hooking this earlier if none of the scripts are using this.
+            // Doing this we are speeding up our CPU just a bit if it's not even used.
+            bDidPatch = true;
+            HOOK(ProcessOneCommand, pocSym);
+        }
         g_pForceInterrupt = handle;
     };
     cleo_addon_ifs.Skip1Byte =              Skip1Byte;
@@ -287,7 +298,6 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.GetLocalVars =           GetLocalVars;
     cleo_addon_ifs.GetPC =                  GetPC;
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
-    HOOK(ProcessOneCommand, cleo->GetMainLibrarySymbol("_ZN14CRunningScript17ProcessOneCommandEv"));
     logger->Info("CLEO Addon Initialized!");
 }
 
