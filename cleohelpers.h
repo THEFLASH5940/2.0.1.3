@@ -677,8 +677,70 @@ inline void SetScmFunc(void* handle, uint16_t idx)
 {
     *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0)) = idx;
 }
-inline void SkipUnusedParameters(void *thread)
+inline void SkipUnusedParameters(void *handle)
 {
-    while(Read1Byte(thread) != 0) cleo->ReadParam(thread);
-    Skip1Byte(thread);
+    while(Read1Byte_NoSkip(handle) != 0) cleo->ReadParam(handle);
+    Skip1Byte(handle); // skip ending byte
+}
+inline void SkipOpcodeParameters(void* handle, int count)
+{
+    int len;
+    for(int i = 0; i < count; ++i)
+    {
+        switch(Read1Byte(handle))
+        {
+            case SCRIPT_PARAM_STATIC_INT_8BITS:
+                SkipBytes(handle, 1);
+                break;
+
+            case SCRIPT_PARAM_STATIC_INT_16BITS:
+            case SCRIPT_PARAM_GLOBAL_NUMBER_VARIABLE:
+            case SCRIPT_PARAM_LOCAL_NUMBER_VARIABLE:
+            case SCRIPT_PARAM_GLOBAL_LONG_STRING_VARIABLE:
+            case SCRIPT_PARAM_LOCAL_LONG_STRING_VARIABLE:
+            case SCRIPT_PARAM_GLOBAL_SHORT_STRING_VARIABLE:
+            case SCRIPT_PARAM_LOCAL_SHORT_STRING_VARIABLE:
+                SkipBytes(handle, 2);
+                break;
+
+            case SCRIPT_PARAM_GLOBAL_NUMBER_ARRAY:
+            case SCRIPT_PARAM_LOCAL_NUMBER_ARRAY:
+            case SCRIPT_PARAM_GLOBAL_SHORT_STRING_ARRAY:
+            case SCRIPT_PARAM_LOCAL_SHORT_STRING_ARRAY:
+            case SCRIPT_PARAM_GLOBAL_LONG_STRING_ARRAY:
+            case SCRIPT_PARAM_LOCAL_LONG_STRING_ARRAY:
+                SkipBytes(handle, 6);
+                break;
+
+            case SCRIPT_PARAM_STATIC_INT_32BITS:
+            case SCRIPT_PARAM_STATIC_FLOAT:
+                SkipBytes(handle, 4);
+                break;
+
+            case SCRIPT_PARAM_STATIC_SHORT_STRING:
+                SkipBytes(handle, 8);
+                break;
+
+            case SCRIPT_PARAM_STATIC_LONG_STRING:
+                SkipBytes(handle, 16);
+                break;
+
+            case SCRIPT_PARAM_STATIC_PASCAL_STRING:
+                int len = (int)Read1Byte(handle);
+                SkipBytes(handle, len);
+                break;
+        }
+    }
+}
+inline int GetVarArgCount(void* handle)
+{
+    int count = 0;
+    uint8_t* pcsave = GetPC(handle);
+    while(Read1Byte_NoSkip(handle) != SCRIPT_PARAM_END_OF_ARGUMENTS)
+    {
+        SkipOpcodeParameters(handle, 1);
+        ++count;
+    }
+    GetPC(handle) = pcsave;
+    return count;
 }
