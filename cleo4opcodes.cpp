@@ -1506,9 +1506,14 @@ void Init4Opcodes()
     CLEO_RegisterOpcode(0x0A8F, INT_SUB); // 0A8F=3,%3d% = %1d% - %2d% ; int
     CLEO_RegisterOpcode(0x0A90, INT_MUL); // 0A90=3,%3d% = %1d% * %2d% ; int
     CLEO_RegisterOpcode(0x0A91, INT_DIV); // 0A91=3,%3d% = %1d% / %2d% ; int
+    //CLEO_RegisterOpcode(0x0A92, STREAM_CUSTOM_SCRIPT); // 
+    //CLEO_RegisterOpcode(0x0A93, TERMINATE_THIS_CUSTOM_SCRIPT); // 
+    //CLEO_RegisterOpcode(0x0A94, LOAD_AND_LAUNCH_CUSTOM_MISSION); // 
+    //CLEO_RegisterOpcode(0x0A95, SAVE_THIS_CUSTOM_SCRIPT); // 
     CLEO_RegisterOpcode(0x0A96, GET_PED_POINTER); // 0A96=2,%2d% = actor %1d% struct
     CLEO_RegisterOpcode(0x0A97, GET_VEHICLE_POINTER); // 0A97=2,%2d% = car %1d% struct
     CLEO_RegisterOpcode(0x0A98, GET_OBJECT_POINTER); // 0A98=2,%2d% = object %1d% struct
+    //CLEO_RegisterOpcode(0x0A99, SET_CURRENT_DIRECTORY); // 
     CLEO_RegisterOpcode(0x0A9A, OPEN_FILE); // 0A9A=3,%3d% = openfile %1d% mode %2d% // IF and SET
     CLEO_RegisterOpcode(0x0A9B, CLOSE_FILE); // 0A9B=1,closefile %1d%
     CLEO_RegisterOpcode(0x0A9C, GET_FILE_SIZE); // 0A9C=2,%2d% = file %1d% size
@@ -1521,6 +1526,10 @@ void Init4Opcodes()
     CLEO_RegisterOpcode(0x0AA3, FREE_DYNAMIC_LIBRARY); // 0AA3=1,free_library %1h%
     CLEO_RegisterOpcode(0x0AA4, GET_DYNAMIC_LIBRARY_PROCEDURE); // 0AA4=3,%3d% = get_proc_address %1d% library %2d% // IF and SET
     // 0AA5 - 0AA8 - Call funcs (we dont support such things, we have a different opcode on Android)
+    //CLEO_RegisterOpcode(0x0AA5, CALL_FUNCTION); // 
+    //CLEO_RegisterOpcode(0x0AA6, CALL_METHOD); // 
+    //CLEO_RegisterOpcode(0x0AA7, CALL_FUNCTION_RETURN); // 
+    //CLEO_RegisterOpcode(0x0AA8, CALL_METHOD_RETURN); // 
     CLEO_RegisterOpcode(0x0AA9, IS_GAME_VERSION_ORIGINAL); // 0AA9=0,is_game_version_original // always false, use 0DD6 (GET_GAME_VERSION) for Android
     CLEO_RegisterOpcode(0x0AAA, GET_SCRIPT_STRUCT_NAMED); // 0AAA=2,%2d% = thread %1d% pointer  // IF and SET
     CLEO_RegisterOpcode(0x0AAB, DOES_FILE_EXIST); // 0AAB=1,file_exists %1d%
@@ -1538,8 +1547,11 @@ void Init4Opcodes()
         CLEO_RegisterOpcode(0x0AB6, GET_TARGET_BLIP_COORDS); // 0AB6=3,store_target_marker_coords_to %1d% %2d% %3d% // IF and SET
         CLEO_RegisterOpcode(0x0AB7, GET_CAR_NUMBER_OF_GEARS); // 0AB7=2,get_vehicle %1d% number_of_gears_to %2d%
         CLEO_RegisterOpcode(0x0AB8, GET_CAR_CURRENT_GEAR); // 0AB8=2,get_vehicle %1d% current_gear_to %2d%
-        // 0AB9, 0ABB-0ABC - AudioStreams
-        // 0ABA - Threads (we dont have them!)
+    }
+    // 0AB9, 0ABB-0ABC - AudioStreams
+    //CLEO_RegisterOpcode(0x0ABA, TERMINATE_ALL_CUSTOM_SCRIPTS_WITH_THIS_NAME); // 
+    if(*nGameIdent == GTASA)
+    {
         CLEO_RegisterOpcode(0x0ABD, IS_CAR_SIREN_ON); // 0ABD=1,vehicle %1d% siren_on
         CLEO_RegisterOpcode(0x0ABE, IS_CAR_ENGINE_ON); // 0ABE=1,vehicle %1d% engine_on
         CLEO_RegisterOpcode(0x0ABF, CLEO_SET_CAR_ENGINE_ON); // 0ABF=2,set_vehicle %1d% engine_state_to %2d%
@@ -1587,6 +1599,7 @@ void Init4Opcodes()
     CLEO_RegisterOpcode(0x0AE7, FIND_NEXT_FILE); // 0AE7=2,%2d% = find_next_file %1d% //IF and SET
     CLEO_RegisterOpcode(0x0AE8, FIND_CLOSE); // 0AE8=1,find_close %1d%
     // popfloat? we have a different logic of FPU
+    //CLEO_RegisterOpcode(0x0AE9, POP_FLOAT); // 
     CLEO_RegisterOpcode(0x0AEA, GET_PED_REF); // 0AEA=2,%2d% = actor_struct %1d% handle
     CLEO_RegisterOpcode(0x0AEB, GET_VEHICLE_REF); // 0AEB=2,%2d% = car_struct %1d% handle
     CLEO_RegisterOpcode(0x0AEC, GET_OBJECT_REF); // 0AEC=2,%2d% = object_struct %1d% handle
