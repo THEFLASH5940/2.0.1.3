@@ -9,6 +9,28 @@ extern GTAScript **pActiveScripts;
 void CleoReturnGeneric(void* handle, bool returnArgs, int returnArgCount);
 
 
+// Debug plugin
+CLEO_Fn(DEBUG_ON)
+{
+    // Need additional work
+}
+CLEO_Fn(DEBUG_OFF)
+{
+    // Need additional work
+}
+CLEO_Fn(BREAKPOINT)
+{
+    // Need additional work
+}
+CLEO_Fn(TRACE)
+{
+    // Need additional work
+}
+CLEO_Fn(LOG_TO_FILE)
+{
+    // Need additional work
+}
+
 // MemOps plugin
   // A scripter should use 0DD7 on mobile (get image base) if he works with GTASA address.
   // Not adding "add_ib" argument here for compatibility
@@ -140,16 +162,23 @@ CLEO_Fn(CLEO_RETURN_FAIL)
 
 void Init5Opcodes()
 {
+    // Debug plugin
+    CLEO_RegisterOpcode(0x00C3, DEBUG_ON); // 
+    CLEO_RegisterOpcode(0x00C4, DEBUG_OFF); // 
+    CLEO_RegisterOpcode(0x2100, BREAKPOINT); // 
+    CLEO_RegisterOpcode(0x2101, TRACE); // 
+    CLEO_RegisterOpcode(0x2102, LOG_TO_FILE); // 
+
     // MemOps plugin (early CLEO **always** had it in themselves. What's the purpose of removing it?!)
     // Literally brainless move... #1
-    CLEO_RegisterOpcode(0x2400, COPY_MEMORY); // 
-    CLEO_RegisterOpcode(0x2401, READ_MEMORY_WITH_OFFSET); // 
-    CLEO_RegisterOpcode(0x2402, WRITE_MEMORY_WITH_OFFSET); // 
-    CLEO_RegisterOpcode(0x2403, FORGET_MEMORY); // 
-    CLEO_RegisterOpcode(0x2404, GET_SCRIPT_STRUCT_JUST_CREATED); // 
-    CLEO_RegisterOpcode(0x2405, IS_SCRIPT_RUNNING); // 
-    CLEO_RegisterOpcode(0x2406, GET_SCRIPT_STRUCT_FROM_FILENAME); // 
-    CLEO_RegisterOpcode(0x2407, IS_MEMORY_EQUAL); // 
+    CLEO_RegisterOpcode(0x2400, COPY_MEMORY); // 2400=3, copy_memory %1d% to %2d% size %3d%
+    CLEO_RegisterOpcode(0x2401, READ_MEMORY_WITH_OFFSET); // 2401=4, read_memory_with_offset %1d% offset %2d% size %3d% store_to %4d%
+    CLEO_RegisterOpcode(0x2402, WRITE_MEMORY_WITH_OFFSET); // 2402=4, write_memory_with_offset %1d% offset %2d% size %3d% value %4d%
+    CLEO_RegisterOpcode(0x2403, FORGET_MEMORY); // 2403=1, forget_memory %1d%
+    CLEO_RegisterOpcode(0x2404, GET_SCRIPT_STRUCT_JUST_CREATED); // 2404=1, get_script_struct_just_created %1d%
+    CLEO_RegisterOpcode(0x2405, IS_SCRIPT_RUNNING); // 2405=1, is_script_running %1d%
+    CLEO_RegisterOpcode(0x2406, GET_SCRIPT_STRUCT_FROM_FILENAME); // 2406=1, get_script_struct_from_filename %1s%
+    CLEO_RegisterOpcode(0x2407, IS_MEMORY_EQUAL); // 2407=3, is_memory_equal address_a %1d% address_b %2d% size %d3%
 
     // Text plugin
     // Literally brainless move... #2
