@@ -297,6 +297,8 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.Read4Bytes_NoSkip =      Read4Bytes_NoSkip;
     cleo_addon_ifs.GetLocalVars =           GetLocalVars;
     cleo_addon_ifs.GetPC =                  GetPC;
+    cleo_addon_ifs.SkipOpcodeParameters =   SkipOpcodeParameters;
+    cleo_addon_ifs.GetVarArgCount =         GetVarArgCount;
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
     logger->Info("CLEO Addon Initialized!");
 }
@@ -318,7 +320,7 @@ const char* GetCLEODir()
 }
 
 extern void (*UpdateCompareFlag)(void*, uint8_t);
-void AML_HAS_MOD_LOADED(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_HAS_MOD_LOADED)
 {
     char modname[128];
     CLEO_ReadStringEx(handle, modname, sizeof(modname));
@@ -327,7 +329,7 @@ void AML_HAS_MOD_LOADED(void *handle, uint32_t *ip, uint16_t opcode, const char 
     cleo->GetPointerToScriptVar(handle)->i = hasMod;
     UpdateCompareFlag(handle, hasMod);
 }
-void AML_HAS_MODVER_LOADED(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_HAS_MODVER_LOADED)
 {
     char modname[128], modver[24];
     CLEO_ReadStringEx(handle, modname, sizeof(modname));
@@ -337,7 +339,7 @@ void AML_HAS_MODVER_LOADED(void *handle, uint32_t *ip, uint16_t opcode, const ch
     cleo->GetPointerToScriptVar(handle)->i = hasMod;
     UpdateCompareFlag(handle, hasMod);
 }
-void AML_REDIRECT_CODE(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_REDIRECT_CODE)
 {
     uintptr_t code1 = cleo->ReadParam(handle)->u;
     if(cleo->ReadParam(handle)->i != 0) code1 += (uintptr_t)cleo->GetMainLibraryLoadAddress();
@@ -346,7 +348,7 @@ void AML_REDIRECT_CODE(void *handle, uint32_t *ip, uint16_t opcode, const char *
 
     aml->Redirect(code1, code2);
 }
-void AML_JUMP_CODE(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_JUMP_CODE)
 {
     uintptr_t code1 = cleo->ReadParam(handle)->u;
     if(cleo->ReadParam(handle)->i != 0) code1 += (uintptr_t)cleo->GetMainLibraryLoadAddress();
@@ -355,42 +357,42 @@ void AML_JUMP_CODE(void *handle, uint32_t *ip, uint16_t opcode, const char *name
 
     aml->PlaceB(code1, code2);
 }
-void AML_GET_BRANCH_DEST(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_GET_BRANCH_DEST)
 {
     uintptr_t code = cleo->ReadParam(handle)->u;
     if(cleo->ReadParam(handle)->i != 0) code += (uintptr_t)cleo->GetMainLibraryLoadAddress();
     
     cleo->GetPointerToScriptVar(handle)->i = aml->GetBranchDest(code);
 }
-void AML_MLS_SAVE(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_SAVE)
 {
     aml->MLSSaveFile();
 }
-void AML_MLS_HAS_VALUE(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_HAS_VALUE)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
     UpdateCompareFlag(handle, aml->MLSHasValue(key));
 }
-void AML_MLS_DELETE_VALUE(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_DELETE_VALUE)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
     aml->MLSDeleteValue(key);
 }
-void AML_MLS_SET_INT(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_SET_INT)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
     aml->MLSSetInt(key, cleo->ReadParam(handle)->i);
 }
-void AML_MLS_SET_FLOAT(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_SET_FLOAT)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
     aml->MLSSetFloat(key, cleo->ReadParam(handle)->f);
 }
-void AML_MLS_SET_STRING(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_SET_STRING)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
@@ -398,7 +400,7 @@ void AML_MLS_SET_STRING(void *handle, uint32_t *ip, uint16_t opcode, const char 
     CLEO_ReadStringEx(handle, value, sizeof(value));
     aml->MLSSetStr(key, value);
 }
-void AML_MLS_GET_INT(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_GET_INT)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
@@ -406,7 +408,7 @@ void AML_MLS_GET_INT(void *handle, uint32_t *ip, uint16_t opcode, const char *na
     aml->MLSGetInt(key, &value);
     cleo->GetPointerToScriptVar(handle)->i = value;
 }
-void AML_MLS_GET_FLOAT(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_GET_FLOAT)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
@@ -414,7 +416,7 @@ void AML_MLS_GET_FLOAT(void *handle, uint32_t *ip, uint16_t opcode, const char *
     aml->MLSGetFloat(key, &value);
     cleo->GetPointerToScriptVar(handle)->f = value;
 }
-void AML_MLS_GET_STRING(void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+CLEO_Fn(AML_MLS_GET_STRING)
 {
     char key[16];
     CLEO_ReadStringEx(handle, key, sizeof(key));
@@ -424,8 +426,8 @@ void AML_MLS_GET_STRING(void *handle, uint32_t *ip, uint16_t opcode, const char 
     CLEO_WriteStringEx(handle, value);
 }
 
-#define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
 void Init4Opcodes();
+void Init5Opcodes();
 extern "C" void OnAllModsLoaded()
 {
     if(!cleo) return;
@@ -455,11 +457,12 @@ extern "C" void OnAllModsLoaded()
     cleo->GetCleoStorageDir = GetCLEODir;
     cleo->GetCleoPluginLoadDir = GetCLEODir;
 
-    // CLEO4 Opcodes
+    // CLEO4+5 Opcodes
     char savpath[256];
     sprintf(savpath, "%s/sav", cleo->GetCleoStorageDir());
     mkdir(savpath, 0777);
     Init4Opcodes();
+    Init5Opcodes();
 
     // DMA Fix
     if(*nGameIdent == GTASA)

@@ -8,6 +8,9 @@ extern eGameIdent* nGameIdent;
 extern cleo_ifs_t* cleo;
 extern uint8_t* ScriptSpace;
 
+#define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
+#define CLEO_Fn(h) void h (void *handle, uint32_t *ip, uint16_t opcode, const char *name)
+
 // https://github.com/gta-reversed/gta-reversed-modern/blob/1b37b015fbda7957ebbc36dbe8d5e4a90ebb6891/source/game_sa/Scripts/RunningScript.h#L17
 constexpr auto SHORT_STRING_SIZE = 8;
 constexpr auto LONG_STRING_SIZE = 16;
@@ -584,7 +587,7 @@ inline int CLEO_FormatString(void* handle, char *str, size_t len, const char *fo
             {
                 case 's':
                 {
-                    *fmta++ = *iter;
+                    *fmta++ = *iter++;
                     *fmta++ = 0;
                     static const char none[] = "(null)";
                     const char *astr = CLEO_ReadStringEx(handle, readbuf, sizeof(readbuf));
@@ -599,7 +602,7 @@ inline int CLEO_FormatString(void* handle, char *str, size_t len, const char *fo
                 }
                 case 'c':
                 {
-                    *fmta++ = *iter;
+                    *fmta++ = *iter++;
                     *fmta++ = 0;
                     snprintf(bufa, sizeof(bufa), fmtbufa, (char)cleo->ReadParam(handle)->i);
                     const char *striter = bufa;
@@ -677,11 +680,6 @@ inline void SetScmFunc(void* handle, uint16_t idx)
 {
     *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0)) = idx;
 }
-inline void SkipUnusedParameters(void *handle)
-{
-    while(Read1Byte_NoSkip(handle) != 0) cleo->ReadParam(handle);
-    Skip1Byte(handle); // skip ending byte
-}
 inline void SkipOpcodeParameters(void* handle, int count)
 {
     int len;
@@ -731,6 +729,11 @@ inline void SkipOpcodeParameters(void* handle, int count)
                 break;
         }
     }
+}
+inline void SkipUnusedParameters(void *handle)
+{
+    while(Read1Byte_NoSkip(handle) != 0) SkipOpcodeParameters(handle, 1);
+    Skip1Byte(handle); // skip ending byte
 }
 inline int GetVarArgCount(void* handle)
 {

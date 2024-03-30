@@ -12,8 +12,6 @@
 
 // CLEO
 #include "cleo.h"
-#define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
-#define CLEO_Fn(h) void h (void *handle, uint32_t *ip, uint16_t opcode, const char *name)
 
 extern uintptr_t nCLEOAddr;
 
@@ -313,7 +311,7 @@ CLEO_Fn(IS_KEY_PRESSED)
 CLEO_Fn(CLEO_CALL)
 {
     int label = cleo->ReadParam(handle)->i;
-    int nParams = (*(cleo->GetGameIdentifier() == GTASA ? GetPC(handle) : GetPC_CLEO(handle)) != 0) ? cleo->ReadParam(handle)->i : 0;
+    int nParams = (Read1Byte_NoSkip(handle) != 0) ? cleo->ReadParam(handle)->i : 0;
     ScmFunction* scmFunc = new ScmFunction(handle);
 
     char buf[MAX_STR_LEN];
@@ -329,7 +327,7 @@ CLEO_Fn(CLEO_CALL)
     for (uint8_t i = 0; i < max_i; ++i)
     {
         int* val = &arguments[i];
-        switch(*(cleo->GetGameIdentifier() == GTASA ? GetPC(handle) : GetPC_CLEO(handle)))
+        switch(Read1Byte_NoSkip(handle))
         {
             case DT_FLOAT:
             case DT_DWORD:
@@ -365,7 +363,7 @@ CLEO_Fn(CLEO_CALL)
 
     // EXPERIMENTAL
     int i = -1;
-    while(*(cleo->GetGameIdentifier() == GTASA ? GetPC(handle) : GetPC_CLEO(handle)) != 0)
+    while(Read1Byte_NoSkip(handle) != 0)
     {
         scmFunc->savedRets[++i] = &cleo->GetPointerToScriptVar(handle)->i;
     }
@@ -385,34 +383,38 @@ CLEO_Fn(CLEO_CALL)
     ThreadJump(handle, label);
 }
 
-CLEO_Fn(CLEO_RETURN)
+inline void CleoReturnGeneric(void* handle, bool returnArgs, int returnArgCount)
 {
     ScmFunction *scmFunc = ScmFunction::Store[GetScmFunc(handle)];
-    int nRetParams = 0;
-    if(*(cleo->GetGameIdentifier() == GTASA ? GetPC(handle) : GetPC_CLEO(handle)))
-    {
-        nRetParams = cleo->ReadParam(handle)->i;
-    }
-
     if(*nGameIdent == GTASA)
     {
-        if(nRetParams) CollectParameters_SA(handle, nRetParams);
+        if(returnArgs && returnArgCount) CollectParameters_SA(handle, returnArgCount);
         scmFunc->Return(handle);
-        //if(nRetParams) StoreParameters_SA(handle, nRetParams);
+        //if(returnArgCount) StoreParameters_SA(handle, returnArgCount);
         // EXPERIMENTAL
-        for(uint8_t i = 0; i < nRetParams; ++i)
+        for(uint8_t i = 0; returnArgs && i < returnArgCount; ++i)
         {
             *(scmFunc->savedRets[i]) = ScriptParams[i];
         }
     }
     else
     {
-        if(nRetParams) CollectParameters_VC(handle, &GetPC(handle), nRetParams);
+        if(returnArgs && returnArgCount) CollectParameters_VC(handle, &GetPC(handle), returnArgCount);
         scmFunc->Return(handle);
-        if(nRetParams) StoreParameters_VC(handle, &GetPC(handle), nRetParams);
+        if(returnArgs && returnArgCount) StoreParameters_VC(handle, &GetPC(handle), returnArgCount);
     }
-    //SkipUnusedParameters(handle);
+    SkipUnusedParameters(handle);
     delete scmFunc;
+}
+
+CLEO_Fn(CLEO_RETURN)
+{
+    int nRetParams = 0;
+    if(Read1Byte_NoSkip(handle))
+    {
+        nRetParams = cleo->ReadParam(handle)->i;
+    }
+    CleoReturnGeneric(handle, true, nRetParams);
 }
 
 CLEO_Fn(SET_CLEO_SHARED_VAR)
@@ -1501,7 +1503,10 @@ void Init4Opcodes()
         SET_TO(SpawnCar, cleo->GetMainLibrarySymbol("_Z12VehicleCheati"));
         SET_TO(curCheatCar_VC, cleo->GetMainLibrarySymbol("curCheatCar"));
     }
-
+    
+    // Those are WIDGET opcodes on Mobile (thanks WarDrum, lol)
+    //CLEO_RegisterOpcode(0x0A8C, WRITE_MEMORY); // 
+    //CLEO_RegisterOpcode(0x0A8D, READ_MEMORY); // 
     CLEO_RegisterOpcode(0x0A8E, INT_ADD); // 0A8E=3,%3d% = %1d% + %2d% ; int
     CLEO_RegisterOpcode(0x0A8F, INT_SUB); // 0A8F=3,%3d% = %1d% - %2d% ; int
     CLEO_RegisterOpcode(0x0A90, INT_MUL); // 0A90=3,%3d% = %1d% * %2d% ; int

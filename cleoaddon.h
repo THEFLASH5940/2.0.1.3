@@ -34,4 +34,6 @@ struct cleo_addon_ifs_t
     uint32_t    (*Read4Bytes_NoSkip)(void* handle);
     int*        (*GetLocalVars)(void* handle);
     uint8_t*&   (*GetPC)(void *handle); // this contains a real code ONLY IN GTASA (maybe LCS too), used for thread jumping &etc
+    void        (*SkipOpcodeParameters)(void* handle, int count);
+    int         (*GetVarArgCount)(void* handle);
 };
