@@ -1,6 +1,7 @@
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <cleohelpers.h>
+#include <string>
 
 // There wont be that much opcodes, because some of them are in their own plugins
 
@@ -9,22 +10,57 @@ extern GTAScript **pActiveScripts;
 void CleoReturnGeneric(void* handle, bool returnArgs, int returnArgCount);
 
 
-// Debug plugin
+// game vars
+bool *m_CodePause;
+
+// Debug plugin (need additional work)
 CLEO_Fn(DEBUG_ON)
 {
-    // Need additional work
+    GetAddonInfo(handle).debugMode = true;
 }
 CLEO_Fn(DEBUG_OFF)
 {
-    // Need additional work
+    GetAddonInfo(handle).debugMode = false;
 }
 CLEO_Fn(BREAKPOINT)
 {
+    if(!GetAddonInfo(handle).debugMode)
+    {
+        SkipUnusedParameters(handle);
+        return;
+    }
+
+    bool blocking = true;
+    std::string msg = "";
+    if(Read1Byte_NoSkip(handle) == SCRIPT_PARAM_STATIC_INT_8BITS)
+    {
+        blocking = !!cleo->ReadParam(handle)->i;
+    }
+    if(Read1Byte_NoSkip(handle) == SCRIPT_PARAM_END_OF_ARGUMENTS)
+    {
+        Skip1Byte(handle);
+    }
+
     // Need additional work
+
+    if(blocking)
+    {
+        cleo->PrintToCleoLog("Game paused");
+        *m_CodePause = true;
+    }
 }
 CLEO_Fn(TRACE)
 {
-    // Need additional work
+    if(!GetAddonInfo(handle).debugMode)
+    {
+        SkipUnusedParameters(handle);
+        return;
+    }
+
+    char text[MAX_STR_LEN], fmt[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, fmt, sizeof(fmt));
+    CLEO_FormatString(handle, text, sizeof(text), fmt);
+    cleo->PrintToCleoLog(text);
 }
 CLEO_Fn(LOG_TO_FILE)
 {
@@ -162,6 +198,8 @@ CLEO_Fn(CLEO_RETURN_FAIL)
 
 void Init5Opcodes()
 {
+    SET_TO(m_CodePause,         cleo->GetMainLibrarySymbol("_ZN6CTimer11m_CodePauseE"));
+
     // Debug plugin
     CLEO_RegisterOpcode(0x00C3, DEBUG_ON); // 
     CLEO_RegisterOpcode(0x00C4, DEBUG_OFF); // 

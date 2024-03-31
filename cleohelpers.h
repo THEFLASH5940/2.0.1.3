@@ -4,8 +4,10 @@
 
 #include <stdint.h>
 #include "cleo.h"
+#include "cleoaddon.h"
 extern eGameIdent* nGameIdent;
 extern cleo_ifs_t* cleo;
+extern cleo_addon_ifs_t cleo_addon_ifs;
 extern uint8_t* ScriptSpace;
 
 #define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
@@ -672,13 +674,17 @@ inline bool IsCLEORelatedGXTKey(char* gxtLabel)
 
     return false; // uh-nuh
 }
+inline ScriptAddonInfo& GetAddonInfo(void* handle)
+{
+    return *(ScriptAddonInfo*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0));
+}
 inline uint16_t GetScmFunc(void* handle)
 {
-    return *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0));
+    return GetAddonInfo(handle).scmFuncId;
 }
 inline void SetScmFunc(void* handle, uint16_t idx)
 {
-    *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0)) = idx;
+    GetAddonInfo(handle).scmFuncId = idx;
 }
 inline void SkipOpcodeParameters(void* handle, int count)
 {

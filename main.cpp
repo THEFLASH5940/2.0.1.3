@@ -299,6 +299,7 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.GetPC =                  GetPC;
     cleo_addon_ifs.SkipOpcodeParameters =   SkipOpcodeParameters;
     cleo_addon_ifs.GetVarArgCount =         GetVarArgCount;
+    cleo_addon_ifs.GetAddonInfo =           GetAddonInfo;
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
     logger->Info("CLEO Addon Initialized!");
 }
