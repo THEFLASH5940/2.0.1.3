@@ -3,12 +3,16 @@
 #define CHEAT_STRING_SIZE 30
 
 #include <stdint.h>
+#include <string>
+#include <deque>
 #include "cleo.h"
 #include "cleoaddon.h"
 extern eGameIdent* nGameIdent;
 extern cleo_ifs_t* cleo;
 extern cleo_addon_ifs_t cleo_addon_ifs;
 extern uint8_t* ScriptSpace;
+extern int* pScriptsStorage, *pScriptsStorageEnd;
+extern void (*UpdateCompareFlag)(void*, uint8_t);
 
 #define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
 #define CLEO_Fn(h) void h (void *handle, uint32_t *ip, uint16_t opcode, const char *name)
@@ -305,7 +309,7 @@ inline void ThreadJump(void* handle, int offset)
     else // Not CLEO script (main.scm ???)
     {
         uint8_t*& bytePtr = GetPC(handle);
-        int baseOffset = ValueForGame(0, 0, 16, 20, 0);
+        int baseOffset = ValueForGame(0, 0, 16, 20, 20);
         if(baseOffset)
         {
             uint8_t* basePtr = GetBasePC(handle);
@@ -753,3 +757,70 @@ inline int GetVarArgCount(void* handle)
     GetPC(handle) = pcsave;
     return count;
 }
+inline int GetScriptsStorageSize()
+{
+    return (*pScriptsStorageEnd - *pScriptsStorage) >> 2;
+}
+inline void* GetScriptHandleFromStorage(int i)
+{
+    if(i >= 0 && i < (*pScriptsStorageEnd - *pScriptsStorage) >> 2)
+    {
+        int storageItem = *(int*)(*pScriptsStorage + i * 4);
+        if(storageItem)
+        {
+            return *(void**)(storageItem + 28);
+        }
+    }
+    return NULL;
+}
+inline int GetScriptMenuIndexFromStorage(int i)
+{
+    if(i >= 0 && i < (*pScriptsStorageEnd - *pScriptsStorage) >> 2)
+    {
+        int storageItem = *(int*)(*pScriptsStorage + i * 4);
+        if(storageItem)
+        {
+            return *(int*)(storageItem + 24);
+        }
+    }
+    return -1;
+}
+inline void* GetScriptHandleFromStorage_NoCheck(int i)
+{
+    int storageItem = *(int*)(*pScriptsStorage + i * 4);
+    if(storageItem)
+    {
+        return *(void**)(storageItem + 28);
+    }
+    return NULL;
+}
+inline int GetScriptMenuIndexFromStorage_NoCheck(int i)
+{
+    int storageItem = *(int*)(*pScriptsStorage + i * 4);
+    if(storageItem)
+    {
+        return *(int*)(storageItem + 24);
+    }
+    return -1;
+}
+inline void* CLEO_GetScriptFromFilename(const char* filename)
+{
+    int len = GetScriptsStorageSize();
+    for(int i = 0; i < len; ++i)
+    {
+        int storageItem = *(int*)(*pScriptsStorage + i * 4);
+        const char* storageFile = *(const char**)(storageItem + 20);
+        if(!strcasecmp(storageFile, filename)) return *(void**)(storageItem + 28);
+    }
+    return NULL;
+}
+
+// CLEO5
+struct PausedScriptInfo 
+{ 
+    GTAScript* ptr;
+    std::string msg;
+    PausedScriptInfo(GTAScript* ptr, const char* msg) : ptr(ptr), msg(msg) {}
+    PausedScriptInfo(void* ptr, const char* msg) : ptr((GTAScript*)ptr), msg(msg) {}
+};
+extern std::deque<PausedScriptInfo> pausedScripts;

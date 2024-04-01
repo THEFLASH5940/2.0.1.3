@@ -35,12 +35,10 @@ inline size_t __strlen(const char *str)
     while(*s) ++s;
     return (s - str);
 }
-
 inline bool __ispathdel(char s)
 {
     return (s == '\\' || s == '/');
 }
-
 inline void __pathback(char *str)
 {
     const char* s = str;
@@ -75,6 +73,10 @@ ConfigEntry* pCfgCLEOMenuArrowPressedAlpha;
 rgba_t* pCLEOMenuColor; // 1525C
 rgba_t* pCLEOMenuArrowColor; // 15250
 uint8_t* pCLEOArrowLastAlpha; // 2194FC
+int* pScriptsStorage; // 192E0
+int* pScriptsStorageEnd; // 192E4
+void* CLEOOpcodesStorage; // 219B20
+void** (*LookupForOpcodeFunc)(void* storage, uint16_t& opcode);
 
 extern unsigned char cleoData[100160];
 const char* pLocations[] = 
@@ -99,6 +101,8 @@ void OnRedArrowChanged(int oldVal, int newVal, void* userdata)
     pCfgCLEORedArrow->SetBool(newVal != 0);
     cfg->Save();
 }
+
+
 
 extern "C" __attribute__((target("thumb-mode"))) __attribute__((naked)) void Opcode0DD2_inject()
 {
@@ -134,11 +138,61 @@ extern "C" __attribute__((target("thumb-mode"))) __attribute__((naked)) void Opc
     );
 }
 
+extern int* ScriptParams;
+void ScmCleanup();
+DECL_HOOKv(CLEO_StartScripts)
+{
+    CLEO_StartScripts();
+    
+    int len = GetScriptsStorageSize();
+    for(int i = 0; i < len; ++i)
+    {
+        int storageItem = *(int*)(*pScriptsStorage + i * 4);
+        if(storageItem != 0 && *(int*)(storageItem + 24) == -1)
+        {
+            void* handle = *(void**)(storageItem + 28);
+            if(handle != NULL) GetAddonInfo(handle).isCustom = true;
+        }
+    }
+}
+DECL_HOOKb(CLEO_OnOpcodeCall, void *storageItem, uint16_t opcode)
+{
+    bool ret = CLEO_OnOpcodeCall(storageItem, opcode);
+    if(opcode == 0x0DF0)
+    {
+        // Init cleo variables
+        ScmCleanup();
+    }
+    if(opcode == 0x0DEF)
+    {
+        // Launch CSI script from menu
+        int len = GetScriptsStorageSize();
+        for(int i = 0; i < len; ++i)
+        {
+            int storageItem = *(int*)(*pScriptsStorage + i * 4);
+            if(storageItem && *(int*)(storageItem + 24) != -1 && *(int*)(storageItem + 24) == *ScriptParams)
+            {
+                void* handle = *(void**)(storageItem + 28);
+                if(handle != NULL) GetAddonInfo(handle).isCustom = true;
+                return ret;
+            }
+        }
+    }
+    return ret;
+}
+
 void* g_pForceInterrupt = NULL;
-void* pocSym;
 DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
 {
     int8_t retCode = ProcessOneCommand(handle);
+    int siz = pausedScripts.size();
+    for (size_t i = 0; i < siz; ++i)
+    {
+        if (pausedScripts[i].ptr == handle)
+        {
+            return 1; // script paused, do not process
+        }
+    }
     if(g_pForceInterrupt && g_pForceInterrupt == handle)
     {
         g_pForceInterrupt = NULL;
@@ -231,7 +285,7 @@ extern "C" void OnModPreLoad()
         
     // XMDS Part 1
     // Fixed OPCODE 0DD2
-    aml->Redirect((nCLEOAddr + 0x4EB8 + 0x1), (uintptr_t)Opcode0DD2_inject);
+    aml->Redirect(nCLEOAddr + 0x4EB8 + 0x1, (uintptr_t)Opcode0DD2_inject);
         
     // CLEO Menu Color
     SET_TO(pCLEOMenuColor, nCLEOAddr + 0x1525C);
@@ -245,13 +299,18 @@ extern "C" void OnModPreLoad()
     SET_TO(pCLEOArrowLastAlpha, nCLEOAddr + 0x2194FC);
     aml->Unprot((uintptr_t)pCLEOArrowLastAlpha, sizeof(uint8_t));
     *pCLEOArrowLastAlpha = pCfgCLEOMenuArrowPressedAlpha->GetInt();
+
+    SET_TO(pScriptsStorage, nCLEOAddr + 0x192E0);
+    SET_TO(pScriptsStorageEnd, nCLEOAddr + 0x192E4);
+    SET_TO(CLEOOpcodesStorage, nCLEOAddr + 0x219B20);
+    SET_TO(LookupForOpcodeFunc, nCLEOAddr + 0xCE88 + 0x1);
+    HOOK(CLEO_StartScripts, nCLEOAddr + 0x5CD8 + 0x1);
+    HOOK(CLEO_OnOpcodeCall, nCLEOAddr + 0x75B4 + 0x1);
     
     // Start CLEO
     libEntry();
     RegisterInterface("CLEO", cleo);
     logger->Info("CLEO Initialized!");
-
-    pocSym = cleo->GetMainLibrarySymbol("_ZN14CRunningScript17ProcessOneCommandEv");
 
     cleo_addon_ifs.GetInterfaceVersion = []() -> uint32_t
     {
@@ -275,14 +334,6 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.GetLogicalOp =           GetLogicalOp;
     cleo_addon_ifs.Interrupt =              [](void *handle)
     {
-        static bool bDidPatch = false;
-        if(!bDidPatch)
-        {
-            // There is no reason in hooking this earlier if none of the scripts are using this.
-            // Doing this we are speeding up our CPU just a bit if it's not even used.
-            bDidPatch = true;
-            HOOK(ProcessOneCommand, pocSym);
-        }
         g_pForceInterrupt = handle;
     };
     cleo_addon_ifs.Skip1Byte =              Skip1Byte;
@@ -300,6 +351,12 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.SkipOpcodeParameters =   SkipOpcodeParameters;
     cleo_addon_ifs.GetVarArgCount =         GetVarArgCount;
     cleo_addon_ifs.GetAddonInfo =           GetAddonInfo;
+    cleo_addon_ifs.UpdateCompareFlag =      UpdateCompareFlag;
+    cleo_addon_ifs.IsOpcodeAlreadyExists =  [](uint16_t opcode) -> bool
+    {
+        void** fn = LookupForOpcodeFunc(CLEOOpcodesStorage, opcode);
+        return (fn != NULL && *fn != NULL);
+    };
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
     logger->Info("CLEO Addon Initialized!");
 }
@@ -320,7 +377,6 @@ const char* GetCLEODir()
     return gotIt;
 }
 
-extern void (*UpdateCompareFlag)(void*, uint8_t);
 CLEO_Fn(AML_HAS_MOD_LOADED)
 {
     char modname[128];
@@ -426,6 +482,12 @@ CLEO_Fn(AML_MLS_GET_STRING)
     aml->MLSGetStr(key, value, sizeof(value));
     CLEO_WriteStringEx(handle, value);
 }
+CLEO_Fn(AML_DO_OPCODE_EXIST)
+{
+    uint16_t op = (uint16_t)cleo->ReadParam(handle)->i;
+    void** fn = LookupForOpcodeFunc(CLEOOpcodesStorage, op);
+    UpdateCompareFlag(handle, fn != NULL && *fn != NULL);
+}
 
 void Init4Opcodes();
 void Init5Opcodes();
@@ -453,6 +515,7 @@ extern "C" void OnAllModsLoaded()
     CLEO_RegisterOpcode(0x3A0B, AML_MLS_GET_INT); // 3A0B=3,%3d% = aml_mls_get_int %1s% default %2d%
     CLEO_RegisterOpcode(0x3A0C, AML_MLS_GET_FLOAT); // 3A0C=3,%3d% = aml_mls_get_float %1s% default %2d%
     CLEO_RegisterOpcode(0x3A0D, AML_MLS_GET_STRING); // 3A0D=3,%3s% = aml_mls_get_string %1s% default %2s%
+    CLEO_RegisterOpcode(0x3A0E, AML_DO_OPCODE_EXIST); // 3A0E=1,do_opcode_exist %1d% // IF and SET
 
     // Fix Alexander Blade's ass code (returns NULL!!! BRUH)
     cleo->GetCleoStorageDir = GetCLEODir;
@@ -464,6 +527,7 @@ extern "C" void OnAllModsLoaded()
     mkdir(savpath, 0777);
     Init4Opcodes();
     Init5Opcodes();
+    HOOK(ProcessOneCommand, cleo->GetMainLibrarySymbol("_ZN14CRunningScript17ProcessOneCommandEv"));
 
     // DMA Fix
     if(*nGameIdent == GTASA)

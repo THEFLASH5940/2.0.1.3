@@ -1,16 +1,16 @@
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <cleohelpers.h>
-#include <string>
 
 // There wont be that much opcodes, because some of them are in their own plugins
 
+std::deque<PausedScriptInfo> pausedScripts;
 extern void (*UpdateCompareFlag)(void*, uint8_t);
 extern GTAScript **pActiveScripts;
 void CleoReturnGeneric(void* handle, bool returnArgs, int returnArgCount);
 
 
-// game vars
+// Game vars
 bool *m_CodePause;
 
 // Debug plugin (need additional work)
@@ -30,8 +30,8 @@ CLEO_Fn(BREAKPOINT)
         return;
     }
 
+    char fmt[MAX_STR_LEN], buf[MAX_STR_LEN];
     bool blocking = true;
-    std::string msg = "";
     if(Read1Byte_NoSkip(handle) == SCRIPT_PARAM_STATIC_INT_8BITS)
     {
         blocking = !!cleo->ReadParam(handle)->i;
@@ -39,9 +39,17 @@ CLEO_Fn(BREAKPOINT)
     if(Read1Byte_NoSkip(handle) == SCRIPT_PARAM_END_OF_ARGUMENTS)
     {
         Skip1Byte(handle);
+        buf[0] = 0;
+    }
+    else
+    {
+        CLEO_ReadStringEx(handle, fmt, sizeof(fmt));
+        CLEO_FormatString(handle, buf, sizeof(buf), fmt);
     }
 
-    // Need additional work
+    pausedScripts.emplace_back(handle, buf);
+    snprintf(fmt, sizeof(fmt), "Script breakpoint '%s' captured in '%s'", buf, ((GTAScript*)handle)->name);
+    cleo->PrintToCleoLog(fmt);
 
     if(blocking)
     {
@@ -121,7 +129,11 @@ CLEO_Fn(IS_SCRIPT_RUNNING)
 }
 CLEO_Fn(GET_SCRIPT_STRUCT_FROM_FILENAME)
 {
-    // Need additional work
+    char buf[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, buf, sizeof(buf));
+    void* script = CLEO_GetScriptFromFilename(buf);
+    cleo->GetPointerToScriptVar(handle)->i = (int)script;
+    UpdateCompareFlag(handle, script != NULL);
 }
 CLEO_Fn(IS_MEMORY_EQUAL)
 {
@@ -201,11 +213,11 @@ void Init5Opcodes()
     SET_TO(m_CodePause,         cleo->GetMainLibrarySymbol("_ZN6CTimer11m_CodePauseE"));
 
     // Debug plugin
-    CLEO_RegisterOpcode(0x00C3, DEBUG_ON); // 
-    CLEO_RegisterOpcode(0x00C4, DEBUG_OFF); // 
-    CLEO_RegisterOpcode(0x2100, BREAKPOINT); // 
-    CLEO_RegisterOpcode(0x2101, TRACE); // 
-    CLEO_RegisterOpcode(0x2102, LOG_TO_FILE); // 
+    CLEO_RegisterOpcode(0x00C3, DEBUG_ON); // 00C3=0, debug_on
+    CLEO_RegisterOpcode(0x00C4, DEBUG_OFF); // 00C4=0, debug_off
+    CLEO_RegisterOpcode(0x2100, BREAKPOINT); // 2100=-1, breakpoint ...
+    CLEO_RegisterOpcode(0x2101, TRACE); // 2101=-1, trace %1s% ...
+    CLEO_RegisterOpcode(0x2102, LOG_TO_FILE); // 2102=-1, log_to_file %1s% timestamp %2d% text %3s% ...
 
     // MemOps plugin (early CLEO **always** had it in themselves. What's the purpose of removing it?!)
     // Literally brainless move... #1

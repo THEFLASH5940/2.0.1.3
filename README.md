@@ -82,6 +82,7 @@ Here is how to do this:
 3A0B=3,%3d% = aml_mls_get_int %1s% default %2d%
 3A0C=3,%3d% = aml_mls_get_float %1s% default %2d%
 3A0D=3,%3s% = aml_mls_get_string %1s% default %2s%
+3A0E=1,do_opcode_exist %1d% // IF and SET
 ```
 
 There is an additional opcodes for GTA:SA Android:
@@ -96,7 +97,6 @@ There is an additional opcodes for GTA:SA Android:
 0AE1=7,%7d% = find_actor_near_point %1d% %2d% %3d% in_radius %4d% find_next %5h% pass_deads %6h% //IF and SET
 0AE2=7,%7d% = find_vehicle_near_point %1d% %2d% %3d% in_radius %4d% find_next %5h% pass_wrecked %6h% //IF and SET
 0AE3=6,%6d% = find_object_near_point %1d% %2d% %3d% in_radius %4d% find_next %5h% //IF and SET
-
 ```
 
 If you need extensions such as IniFiles or IntOperations, they are already available! You can find them in our project's Discord (https://discord.gg/2MY7W39kBg) or get them here:

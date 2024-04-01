@@ -308,6 +308,10 @@ CLEO_Fn(IS_KEY_PRESSED)
 }
 
 #include "cleo4scmfunc.h"
+void ScmCleanup()
+{
+    ScmFunction::CleanAll();
+}
 CLEO_Fn(CLEO_CALL)
 {
     int label = cleo->ReadParam(handle)->i;
