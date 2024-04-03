@@ -814,6 +814,17 @@ inline void* CLEO_GetScriptFromFilename(const char* filename)
     }
     return NULL;
 }
+inline void* CLEO_GetScriptFilename(void* handle)
+{
+    int len = GetScriptsStorageSize();
+    for(int i = 0; i < len; ++i)
+    {
+        int storageItem = *(int*)(*pScriptsStorage + i * 4);
+        void* scriptHandle = *(void**)(storageItem + 28);
+        if(scriptHandle == handle) return *(const char**)(storageItem + 20);
+    }
+    return NULL;
+}
 inline const char* GetVarTypeName(eScriptParameterType type)
 {
     #define STRP(__param) case SCRIPT_PARAM_##__param: return #__param
