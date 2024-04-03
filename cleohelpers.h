@@ -814,7 +814,7 @@ inline void* CLEO_GetScriptFromFilename(const char* filename)
     }
     return NULL;
 }
-inline void* CLEO_GetScriptFilename(void* handle)
+inline const char* CLEO_GetScriptFilename(void* handle)
 {
     int len = GetScriptsStorageSize();
     for(int i = 0; i < len; ++i)
