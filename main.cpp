@@ -87,6 +87,7 @@ extern unsigned char cleoData[100160];
 // CLEO crashlogging
 void *lastScriptHandle = NULL;
 uint8_t *lastScriptPC = NULL;
+uint8_t *lastScriptRealPC = NULL;
 uint16_t lastScriptOpcode; // *(uint16_t*)lastScriptPC
 
 // Config-functions
@@ -196,7 +197,7 @@ void* g_pForceInterrupt = NULL;
 DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
 {
     lastScriptHandle = handle;
-    lastScriptPC = GetRealPC(handle);
+    lastScriptPC = GetPC(handle);
     // no lastScriptOpcode here for optimisations!
     // its inside lastScriptPC at this stage! :p
     
@@ -561,16 +562,30 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
 {
     // Print lastScript* data to the cleo logging!
     if(!cleo) return;
-    cleo->PrintToCleoLog("The game crashed!");
+    cleo->PrintToCleoLog("[ The game crashed ]");
     if(!lastScriptHandle || !lastScriptPC) return;
-
+    
     char buf[512];
     snprintf(buf, sizeof(buf), "Latest script handle: 0x%08X, PC: 0x%08X", lastScriptHandle, lastScriptPC);
     cleo->PrintToCleoLog(buf);
     
     // Check if this script handle is still correct
     // If it is, we have a name, filename, a complete script code and more!
-    //if(false) return;
-    lastScriptOpcode = *(uint16_t*)lastScriptPC;
+    if(false) return;
+    uint8_t *backupPC = GetPC(lastScriptHandle);
+    GetPC(lastScriptHandle) = lastScriptPC;
+    
+    lastScriptOpcode = Read2Bytes(lastScriptHandle);
     snprintf(buf, sizeof(buf), "Opcode: %04X", lastScriptOpcode);
+    cleo->PrintToCleoLog(buf);
+
+    bool isCustom = GetAddonInfo(lastScriptHandle).isCustom;
+    const char* scrName = isCustom ? "" : ((GTAScript*)lastScriptHandle).name;
+    snprintf(buf, sizeof(buf), "Script name: %s", scrName ? scrName : "(null)");
+    cleo->PrintToCleoLog(buf);
+
+    snprintf(buf, sizeof(buf), "A %d arguments are used in this opcode", GetVarArgCount(lastScriptHandle));
+    cleo->PrintToCleoLog(buf);
+
+    cleo->PrintToCleoLog("[ Crashlog ending ]");
 }
