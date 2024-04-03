@@ -560,9 +560,17 @@ extern "C" void OnAllModsLoaded()
 extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t libaddr, mcontext_t* mcontext)
 {
     // Print lastScript* data to the cleo logging!
-    if(!cleo || !lastScriptHandle || !lastScriptPC) return;
-    lastScriptOpcode = *(uint16_t*)lastScriptPC;
+    if(!cleo) return;
+    cleo->PrintToCleoLog("The game crashed!");
+    if(!lastScriptHandle || !lastScriptPC) return;
 
-    // Check if this script handle is still correct
+    char buf[512];
+    snprintf(buf, sizeof(buf), "Latest script handle: 0x%08X, PC: 0x%08X", lastScriptHandle, lastScriptPC);
+    cleo->PrintToCleoLog(buf);
     
+    // Check if this script handle is still correct
+    // If it is, we have a name, filename, a complete script code and more!
+    //if(false) return;
+    lastScriptOpcode = *(uint16_t*)lastScriptPC;
+    snprintf(buf, sizeof(buf), "Opcode: %04X", lastScriptOpcode);
 }
