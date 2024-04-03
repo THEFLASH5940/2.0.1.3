@@ -814,6 +814,35 @@ inline void* CLEO_GetScriptFromFilename(const char* filename)
     }
     return NULL;
 }
+inline const char* GetVarTypeName(eScriptParameterType type)
+{
+    #define STRP(__param) case SCRIPT_PARAM_##__param: return #__param
+    switch(type)
+    {
+        STRP(END_OF_ARGUMENTS);
+        STRP(STATIC_INT_32BITS);
+        STRP(GLOBAL_NUMBER_VARIABLE);
+        STRP(LOCAL_NUMBER_VARIABLE);
+        STRP(STATIC_INT_8BITS);
+        STRP(STATIC_INT_16BITS);
+        STRP(STATIC_FLOAT);
+        STRP(GLOBAL_NUMBER_ARRAY);
+        STRP(LOCAL_NUMBER_ARRAY);
+        STRP(STATIC_SHORT_STRING);
+        STRP(GLOBAL_SHORT_STRING_VARIABLE);
+        STRP(LOCAL_SHORT_STRING_VARIABLE);
+        STRP(GLOBAL_SHORT_STRING_ARRAY);
+        STRP(LOCAL_SHORT_STRING_ARRAY);
+        STRP(STATIC_PASCAL_STRING);
+        STRP(STATIC_LONG_STRING);
+        STRP(GLOBAL_LONG_STRING_VARIABLE);
+        STRP(LOCAL_LONG_STRING_VARIABLE);
+        STRP(GLOBAL_LONG_STRING_ARRAY);
+        STRP(LOCAL_LONG_STRING_ARRAY);
+    }
+    #undef STRP
+    return "UNKNOWN";
+}
 
 // CLEO5
 struct PausedScriptInfo 
