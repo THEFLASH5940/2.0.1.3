@@ -351,7 +351,10 @@ extern "C" void OnModPreLoad()
     cleo_addon_ifs.SkipOpcodeParameters =   SkipOpcodeParameters;
     cleo_addon_ifs.GetVarArgCount =         GetVarArgCount;
     cleo_addon_ifs.GetAddonInfo =           GetAddonInfo;
-    cleo_addon_ifs.UpdateCompareFlag =      UpdateCompareFlag;
+    cleo_addon_ifs.UpdateCompareFlag =      [](void* handle, uint8_t flag)
+    {
+        UpdateCompareFlag(handle, flag);
+    };
     cleo_addon_ifs.IsOpcodeAlreadyExists =  [](uint16_t opcode) -> bool
     {
         void** fn = LookupForOpcodeFunc(CLEOOpcodesStorage, opcode);
