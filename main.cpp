@@ -580,7 +580,7 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
     cleo->PrintToCleoLog(buf);
 
     bool isCustom = GetAddonInfo(lastScriptHandle).isCustom;
-    const char* scrName = isCustom ? CLEO_GetScriptFilename(handle) : ((GTAScript*)lastScriptHandle)->name;
+    const char* scrName = isCustom ? CLEO_GetScriptFilename(lastScriptHandle) : ((GTAScript*)lastScriptHandle)->name;
     snprintf(buf, sizeof(buf), "Script name: %s", scrName ? scrName : "(null)");
     cleo->PrintToCleoLog(buf);
 
