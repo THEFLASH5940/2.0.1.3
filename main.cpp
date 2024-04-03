@@ -59,17 +59,20 @@ inline void __pathback(char *str)
     if(i > 0) str[i] = 0;
 }
 
+// Pointers
 void* pCLEO;
 uintptr_t nCLEOAddr;
 Dl_info pDLInfo;
 eGameIdent* nGameIdent;
 
+// Configs
 ConfigEntry* pCfgCLEOLocation;
 ConfigEntry* pCfgCLEORedArrow;
 ConfigEntry* pCfgCLEOMenuColor;
 ConfigEntry* pCfgCLEOMenuArrowColor;
 ConfigEntry* pCfgCLEOMenuArrowPressedAlpha;
 
+// CLEO 2.0.1 pointers
 rgba_t* pCLEOMenuColor; // 1525C
 rgba_t* pCLEOMenuArrowColor; // 15250
 uint8_t* pCLEOArrowLastAlpha; // 2194FC
@@ -78,7 +81,15 @@ int* pScriptsStorageEnd; // 192E4
 void* CLEOOpcodesStorage; // 219B20
 void** (*LookupForOpcodeFunc)(void* storage, uint16_t& opcode);
 
+// CLEO itself
 extern unsigned char cleoData[100160];
+
+// CLEO crashlogging
+void *lastScriptHandle;
+uint8_t *lastScriptPC;
+uint16_t lastScriptOpcode; // *(uint16_t*)lastScriptPC
+
+// Config-functions
 const char* pLocations[] = 
 {
     "CLEO 2.0.1",
@@ -184,6 +195,11 @@ DECL_HOOKb(CLEO_OnOpcodeCall, void *storageItem, uint16_t opcode)
 void* g_pForceInterrupt = NULL;
 DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
 {
+    lastScriptHandle = handle;
+    lastScriptPC = GetRealPC(handle);
+    // no lastScriptOpcode here for optimisations!
+    // its inside lastScriptPC at this stage! :p
+    
     int8_t retCode = ProcessOneCommand(handle);
     int siz = pausedScripts.size();
     for (size_t i = 0; i < siz; ++i)
