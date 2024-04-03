@@ -566,7 +566,7 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
     if(!lastScriptHandle || !lastScriptPC) return;
     
     char buf[512];
-    snprintf(buf, sizeof(buf), "Latest script handle: 0x%08X, PC: 0x%08X", lastScriptHandle, lastScriptPC);
+    snprintf(buf, sizeof(buf), "Latest script handle: 0x%08X, PC: 0x%08X", (uint32_t)lastScriptHandle, (uint32_t)lastScriptPC);
     cleo->PrintToCleoLog(buf);
     
     // Check if this script handle is still correct
@@ -580,7 +580,7 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
     cleo->PrintToCleoLog(buf);
 
     bool isCustom = GetAddonInfo(lastScriptHandle).isCustom;
-    const char* scrName = isCustom ? "" : ((GTAScript*)lastScriptHandle).name;
+    const char* scrName = isCustom ? CLEO_GetScriptFilename(handle) : ((GTAScript*)lastScriptHandle)->name;
     snprintf(buf, sizeof(buf), "Script name: %s", scrName ? scrName : "(null)");
     cleo->PrintToCleoLog(buf);
 
