@@ -85,8 +85,8 @@ void** (*LookupForOpcodeFunc)(void* storage, uint16_t& opcode);
 extern unsigned char cleoData[100160];
 
 // CLEO crashlogging
-void *lastScriptHandle;
-uint8_t *lastScriptPC;
+void *lastScriptHandle = NULL;
+uint8_t *lastScriptPC = NULL;
 uint16_t lastScriptOpcode; // *(uint16_t*)lastScriptPC
 
 // Config-functions
@@ -554,4 +554,15 @@ extern "C" void OnAllModsLoaded()
         uintptr_t pGTASA = aml->GetLib("libGTASA.so");
         aml->Write8(pGTASA + 0x32950A + 0x1, 0x68);
     }
+}
+
+
+extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t libaddr, mcontext_t* mcontext)
+{
+    // Print lastScript* data to the cleo logging!
+    if(!cleo || !lastScriptHandle || !lastScriptPC) return;
+    lastScriptOpcode = *(uint16_t*)lastScriptPC;
+
+    // Check if this script handle is still correct
+    
 }
