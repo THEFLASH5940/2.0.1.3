@@ -87,7 +87,6 @@ extern unsigned char cleoData[100160];
 // CLEO crashlogging
 void *lastScriptHandle = NULL;
 uint8_t *lastScriptPC = NULL;
-uint8_t *lastScriptRealPC = NULL;
 uint16_t lastScriptOpcode; // *(uint16_t*)lastScriptPC
 
 // Config-functions
@@ -201,7 +200,6 @@ DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
     // no lastScriptOpcode here for optimisations!
     // its inside lastScriptPC at this stage! :p
     
-    int8_t retCode = ProcessOneCommand(handle);
     int siz = pausedScripts.size();
     for (size_t i = 0; i < siz; ++i)
     {
@@ -210,6 +208,8 @@ DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
             return 1; // script paused, do not process
         }
     }
+    
+    int8_t retCode = ProcessOneCommand(handle);
     if(g_pForceInterrupt && g_pForceInterrupt == handle)
     {
         g_pForceInterrupt = NULL;
@@ -573,6 +573,13 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
     // If it is, we have a name, filename, a complete script code and more!
     if(false) return;
     uint8_t *backupPC = GetPC(lastScriptHandle);
+    GetPC(lastScriptHandle) = lastScriptPC;
+
+    for(int i = 0; i < 32; ++i)
+    {
+        snprintf(buf, sizeof(buf), "i = %d, byte = %02X", i, Read1Byte(lastScriptHandle));
+        cleo->PrintToCleoLog(buf);
+    }
     GetPC(lastScriptHandle) = lastScriptPC;
     
     lastScriptOpcode = Read2Bytes(lastScriptHandle);
