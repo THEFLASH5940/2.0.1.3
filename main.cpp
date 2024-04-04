@@ -577,7 +577,8 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
 
     for(int i = 0; i < 32; ++i)
     {
-        snprintf(buf, sizeof(buf), "i = %d, byte = %02X", i, Read1Byte(lastScriptHandle));
+        uint8_t datByte = Read1Byte(lastScriptHandle);
+        snprintf(buf, sizeof(buf), "i = %d, byte = %02X (%c)", i, datByte, (char)datByte);
         cleo->PrintToCleoLog(buf);
     }
     GetPC(lastScriptHandle) = lastScriptPC;
