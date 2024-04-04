@@ -195,7 +195,7 @@ DECL_HOOKb(CLEO_OnOpcodeCall, void *storageItem, uint16_t opcode)
 void* g_pForceInterrupt = NULL;
 DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
 {
-    for(int i = SCRIPTS_LOG_COUNT-2; i > 0; --i)
+    for(int i = SCRIPTS_LOG_COUNT-2; i >= 0; --i)
     {
         lastScriptHandle[i + 1] = lastScriptHandle[i];
         lastScriptPC[i + 1] = lastScriptPC[i];
