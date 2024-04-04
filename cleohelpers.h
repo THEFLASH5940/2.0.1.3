@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string>
 #include <deque>
+#include <filesystem>
 #include "cleo.h"
 #include "cleoaddon.h"
 extern eGameIdent* nGameIdent;
@@ -919,3 +920,83 @@ struct PausedScriptInfo
     PausedScriptInfo(void* ptr, const char* msg) : ptr((GTAScript*)ptr), msg(msg) {}
 };
 extern std::deque<PausedScriptInfo> pausedScripts;
+
+static const char DIR_GAME[] = "root:"; // game root directory
+static const char DIR_USER[] = "userfiles:"; // game save directory
+static const char DIR_SCRIPT[] = "."; // current script directory
+static const char DIR_CLEO[] = "cleo:"; // game\cleo directory
+static const char DIR_MODULES[] = "modules:"; // game\cleo\modules directory
+
+inline const char* GetWorkDir()
+{
+    return aml->GetAndroidDataPath();
+}
+inline const char* GetUserDirectory()
+{
+    return aml->GetDataPath();
+}
+inline const char* GetCleoDir()
+{
+    return cleo->GetCleoStorageDir();
+}
+inline const char* GetModulesDir()
+{
+    return cleo->GetCleoPluginLoadDir();
+}
+inline std::string ResolvePath(void* handle, const char* path, const char* customWorkDir = NULL)
+{
+    if(!path) return "";
+
+    enum class VPref{ None, Game, User, Script, Cleo, Modules } virtualPrefix = VPref::None;
+    std::filesystem::path fsPath = std::filesystem::path(path);
+    std::filesystem::path::iterator root = fsPath.begin();
+    if(root != fsPath.end())
+    {
+        if(*root == DIR_GAME) virtualPrefix = VPref::Game;
+        else if (*root == DIR_USER) virtualPrefix = VPref::User;
+        else if (*root == DIR_SCRIPT) virtualPrefix = VPref::Script;
+        else if (*root == DIR_CLEO) virtualPrefix = VPref::Cleo;
+        else if (*root == DIR_MODULES) virtualPrefix = VPref::Modules;
+    }
+
+    std::filesystem::path resolved;
+    switch(virtualPrefix)
+    {
+        default: //case VPref::None:
+        {
+            if(fsPath.is_relative())
+            {
+                if(customWorkDir != NULL)
+                    fsPath = ResolvePath(handle, customWorkDir) / fsPath;
+                else
+                    fsPath = GetWorkDir() / fsPath;
+            }
+            return std::filesystem::weakly_canonical(fsPath).string();
+        }
+
+        case VPref::User:
+            resolved = GetUserDirectory();
+            break;
+
+        case VPref::Script:
+            if(handle && GetAddonInfo(handle).isCustom) resolved = GetCleoDir();
+            else
+            {
+                resolved = GetWorkDir();
+                resolved /= "data";
+                resolved /= "script";
+            }
+            break;
+
+        case VPref::Cleo:
+            resolved = GetCleoDir();
+            break;
+
+        case VPref::Modules:
+            resolved = GetModulesDir();
+            break;
+    }
+
+    for(auto it = ++fsPath.begin(); it != fsPath.end(); it++) resolved /= *it;
+    return std::filesystem::weakly_canonical(resolved).string(); // collapse "..\" uses
+}

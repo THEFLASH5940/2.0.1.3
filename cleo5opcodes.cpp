@@ -232,6 +232,7 @@ CLEO_Fn(DISPLAY_TEXT_FORMATTED)
     CLEO_ReadStringEx(handle, fmt, sizeof(fmt));
     CLEO_FormatString(handle, buf, sizeof(buf), fmt);
 
+    char* introTxtLine = IntroTextLines + *NumberOfIntroTextLinesThisFrame * ValueForGame(0xF4, 0xF4, 0x44);
     if(*nGameIdent == GTASA)
     {
         // new GXT label
@@ -239,7 +240,6 @@ CLEO_Fn(DISPLAY_TEXT_FORMATTED)
         char gxt[8] = { 0x01, 'C', 'L', 'E', 'O', '_', 0x01, 0x00 };
         gxt[6] += *NumberOfIntroTextLinesThisFrame; // unique label for each possible entry
 
-        char* introTxtLine = IntroTextLines + *NumberOfIntroTextLinesThisFrame * ValueForGame(0xF4, 0xF4, 0x44);
         AddGXTLabel(gxt, buf);
 
         *(float*)(introTxtLine + 0x2C) = posX;
@@ -255,6 +255,84 @@ CLEO_Fn(DISPLAY_TEXT_FORMATTED)
         *(float*)(introTxtLine + 0x28) = posY;
     }
     ++(*NumberOfIntroTextLinesThisFrame);
+}
+
+// FileSystemOperations
+CLEO_Fn(GET_FILE_POSITION)
+{
+    FILE* file = (FILE*)cleo->ReadParam(handle)->i;
+    cleo->GetPointerToScriptVar(handle)->i = file ? ftell(file) : 0;
+}
+CLEO_Fn(READ_BLOCK_FROM_FILE)
+{
+    FILE* file = (FILE*)cleo->ReadParam(handle)->i;
+    int size = cleo->ReadParam(handle)->i;
+    char* buffer = (char*)cleo->ReadParam(handle)->i;
+    int didRead = fread(buffer, 1, size, file);
+    fseek(file, 0, SEEK_CUR); // required for RW streams (https://en.wikibooks.org/wiki/C_Programming/stdio.h/fopen)
+    UpdateCompareFlag(handle, didRead == size);
+}
+CLEO_Fn(WRITE_BLOCK_TO_FILE)
+{
+    FILE* file = (FILE*)cleo->ReadParam(handle)->i;
+    int size = cleo->ReadParam(handle)->i;
+    char* buffer = (char*)cleo->ReadParam(handle)->i;
+    int didWrite = fwrite(buffer, 1, size, file);
+    fseek(file, 0, SEEK_CUR); // required for RW streams (https://en.wikibooks.org/wiki/C_Programming/stdio.h/fopen)
+    UpdateCompareFlag(handle, didWrite == size);
+}
+CLEO_Fn(RESOLVE_FILEPATH)
+{
+    char path[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, path, sizeof(path));
+
+    std::string resolved = ResolvePath(handle, path);
+    CLEO_WriteStringEx(handle, resolved.c_str());
+}
+CLEO_Fn(GET_SCRIPT_FILENAME)
+{
+    void* script = (void*)cleo->ReadParam(handle)->i;
+    bool fullPath = cleo->ReadParam(handle)->i;
+
+    if(script == (void*)-1) script = handle;
+
+    if(GetAddonInfo(script).isCustom)
+    {
+        const char* filename = CLEO_GetScriptFilename(script);
+        if(!filename)
+        {
+            SkipOpcodeParameters(handle, 1);
+            UpdateCompareFlag(handle, false);
+            return;
+        }
+
+        if(fullPath)
+        {
+            std::string fullfilename = cleo->GetCleoStorageDir();
+            if(fullfilename.back() != '/' && fullfilename.back() != '\\') fullfilename += '/';
+            fullfilename += filename;
+            CLEO_WriteStringEx(handle, fullfilename.c_str());
+        }
+        else
+        {
+            CLEO_WriteStringEx(handle, filename);
+        }
+    }
+    else
+    {
+        if(fullPath)
+        {
+            std::string fullfilename = aml->GetAndroidDataPath();
+            if(fullfilename.back() != '/' && fullfilename.back() != '\\') fullfilename += '/';
+            fullfilename += "data/script/";
+            fullfilename += ((GTAScript*)script)->name;
+            CLEO_WriteStringEx(handle, fullfilename.c_str()); // stupid but ok...
+        }
+        else
+        {
+            CLEO_WriteStringEx(handle, ((GTAScript*)script)->name);
+        }
+    }
 }
 
 // CLEO 5
@@ -304,6 +382,14 @@ void Init5Opcodes()
     CLEO_RegisterOpcode(0x2603, IS_TEXT_PREFIX); // 2603=3, is_text_prefix %1s% prefix %2s% ignore_case %3d%
     CLEO_RegisterOpcode(0x2604, IS_TEXT_SUFFIX); // 2604=3, is_text_suffix %1s% suffix %2s% ignore_case %3d% // originally it's sufix *facepalm*
     CLEO_RegisterOpcode(0x2605, DISPLAY_TEXT_FORMATTED); // 2605=-1, display_text_formatted offset_left %1d% offset_top %2d% format %3d% args
+
+    // FileSystemOperations
+    // Literally brainless move... #3
+    CLEO_RegisterOpcode(0x2300, GET_FILE_POSITION); // 2300=2, get_file_position %1d% store_to %2d%
+    CLEO_RegisterOpcode(0x2301, READ_BLOCK_FROM_FILE); // 2301=3, read_block_from_file %1d% size %2d% buffer %3d% // IF and SET
+    CLEO_RegisterOpcode(0x2302, WRITE_BLOCK_TO_FILE); // 2302=3, write_block_to_file %1d% size %2d% address %3d% // IF and SET
+    CLEO_RegisterOpcode(0x2303, RESOLVE_FILEPATH); // 2303=2, %2s% = resolve_filepath %1s%
+    CLEO_RegisterOpcode(0x2304, GET_SCRIPT_FILENAME); // 2304=3, %3s% = get_script_filename %1d% full_path %2d% // IF and SET
 
     // CLEO 5
     CLEO_RegisterOpcode(0x2002, CLEO_RETURN_WITH); // 2002=-1, cleo_return_with ...
