@@ -12,6 +12,8 @@ void CleoReturnGeneric(void* handle, bool returnArgs, int returnArgCount);
 
 // Game vars
 bool *m_CodePause;
+uint16_t *NumberOfIntroTextLinesThisFrame;
+char *IntroTextLines;
 
 // Debug plugin (need additional work)
 CLEO_Fn(DEBUG_ON)
@@ -91,7 +93,20 @@ CLEO_Fn(READ_MEMORY_WITH_OFFSET)
     uint32_t offset = cleo->ReadParam(handle)->u;
     int size = cleo->ReadParam(handle)->i;
 
-    // Need additional work
+    if(IsParamString(handle))
+    {
+        std::string str(std::string_view((char*)source + offset, size)); // null terminated
+        CLEO_WriteStringEx(handle, str.c_str());
+    }
+    else
+    {
+        int result = 0;
+        if(size > 0 && size <= sizeof(result))
+        {
+            memcpy(&result, (void*)(source + offset), size);
+        }
+        cleo->GetPointerToScriptVar(handle)->i = result;
+    }
 }
 CLEO_Fn(WRITE_MEMORY_WITH_OFFSET)
 {
@@ -99,7 +114,27 @@ CLEO_Fn(WRITE_MEMORY_WITH_OFFSET)
     uint32_t offset = cleo->ReadParam(handle)->u;
     int size = cleo->ReadParam(handle)->i;
 
-    // Need additional work
+    if(size <= 0)
+    {
+        SkipOpcodeParameters(handle, 1);
+        return;
+    }
+
+    if(IsParamString(handle))
+    {
+        char buf[MAX_STR_LEN];
+        CLEO_ReadStringEx(handle, buf, sizeof(buf));
+        int len = strlen(buf);
+        memcpy((void*)(source + offset), buf, (size < len) ? size : len);
+        if (size > len) memset((void*)(source + offset + len), 0, size - len);
+    }
+    else
+    {
+        int value = cleo->ReadParam(handle)->i;
+        if(size > sizeof(value)) size = sizeof(value);
+
+        memcpy((void*)(source + offset), &value, size);
+    }
 }
 CLEO_Fn(FORGET_MEMORY)
 {
@@ -190,7 +225,36 @@ CLEO_Fn(IS_TEXT_SUFFIX)
 }
 CLEO_Fn(DISPLAY_TEXT_FORMATTED)
 {
-    // Need additional work
+    float posX = cleo->ReadParam(handle)->f;
+    float posY = cleo->ReadParam(handle)->f;
+
+    char fmt[MAX_STR_LEN], buf[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, fmt, sizeof(fmt));
+    CLEO_FormatString(handle, buf, sizeof(buf), fmt);
+
+    if(*nGameIdent == GTASA)
+    {
+        // new GXT label
+        // includes unprintable character, to ensure there will be no collision with user GXT lables
+        char gxt[8] = { 0x01, 'C', 'L', 'E', 'O', '_', 0x01, 0x00 };
+        gxt[6] += *NumberOfIntroTextLinesThisFrame; // unique label for each possible entry
+
+        char* introTxtLine = IntroTextLines + *NumberOfIntroTextLinesThisFrame * ValueForGame(0xF4, 0xF4, 0x44);
+        AddGXTLabel(gxt, buf);
+
+        *(float*)(introTxtLine + 0x2C) = posX;
+        *(float*)(introTxtLine + 0x30) = posY;
+        strncpy(introTxtLine + 0x34, gxt, sizeof(gxt));
+    }
+    else
+    {
+        uint16_t gxt[256];
+        AsciiToGXTChar(buf, gxt);
+        memcpy(introTxtLine + 0x2C, &gxt[0], 200);
+        *(float*)(introTxtLine + 0x24) = posX;
+        *(float*)(introTxtLine + 0x28) = posY;
+    }
+    ++(*NumberOfIntroTextLinesThisFrame);
 }
 
 // CLEO 5
@@ -210,7 +274,9 @@ CLEO_Fn(CLEO_RETURN_FAIL)
 
 void Init5Opcodes()
 {
-    SET_TO(m_CodePause,         cleo->GetMainLibrarySymbol("_ZN6CTimer11m_CodePauseE"));
+    SET_TO(m_CodePause,                     cleo->GetMainLibrarySymbol("_ZN6CTimer11m_CodePauseE"));
+    SET_TO(NumberOfIntroTextLinesThisFrame, cleo->GetMainLibrarySymbol("_ZN11CTheScripts31NumberOfIntroTextLinesThisFrameE"));
+    SET_TO(IntroTextLines,                  cleo->GetMainLibrarySymbol("_ZN11CTheScripts14IntroTextLinesE"));
 
     // Debug plugin
     CLEO_RegisterOpcode(0x00C3, DEBUG_ON); // 00C3=0, debug_on

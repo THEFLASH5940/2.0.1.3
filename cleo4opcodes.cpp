@@ -901,14 +901,8 @@ CLEO_Fn(GET_TEXT_LABEL_STRING)
     CLEO_WriteStringEx(handle, GXTCharToAscii(keyvalue, 0));
 }
 
-CLEO_Fn(ADD_TEXT_LABEL)
+void AddGXTLabel(const char* gxtLabel, const char* text)
 {
-    char gxtLabel[8], text[MAX_STR_LEN];
-    CLEO_ReadStringEx(handle, gxtLabel, sizeof(gxtLabel));
-    CLEO_ReadStringEx(handle, text, sizeof(text));
-
-    if(IsCLEORelatedGXTKey(gxtLabel)) return; // NUH-UH
-
     CLEO_STD_String key, keytext;
     CLEO_STD_PutStrToAlloced(&key, gxtLabel);
     CLEO_STD_PutStrToAlloced(&keytext, text);
@@ -917,6 +911,16 @@ CLEO_Fn(ADD_TEXT_LABEL)
 
     CLEO_STD_DeallocStorage(&key);
     CLEO_STD_DeallocStorage(&keytext);
+}
+CLEO_Fn(ADD_TEXT_LABEL)
+{
+    char gxtLabel[8], text[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, gxtLabel, sizeof(gxtLabel));
+    CLEO_ReadStringEx(handle, text, sizeof(text));
+
+    if(IsCLEORelatedGXTKey(gxtLabel)) return; // NUH-UH
+
+    AddGXTLabel(gxtLabel, text);
 }
 
 CLEO_Fn(REMOVE_TEXT_LABEL)

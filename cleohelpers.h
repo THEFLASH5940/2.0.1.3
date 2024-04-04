@@ -124,6 +124,7 @@ union GXTChar
 };
 
 // Custom Funcs
+void AddGXTLabel(const char* gxtLabel, const char* text);
 inline void* AllocMem(size_t size)
 {
     void* mem = malloc(size);
@@ -891,6 +892,22 @@ inline bool IsInCLEOScripts(void* handle)
 inline bool IsValidScriptHandle(void* handle)
 {
     return IsInActiveScripts(handle) || IsInPausedScripts(handle) || IsInCLEOScripts(handle);
+}
+inline bool IsParamString(void* handle, bool checkIfPointer = false)
+{
+    if(Read1Byte_NoSkip(handle) >= SCRIPT_PARAM_STATIC_SHORT_STRING)
+    {
+        return true;
+    }
+    else if(checkIfPointer)
+    {
+        uint8_t* backupPC = GetPC(handle);
+        void* probMem = (void*)cleo->ReadParam(handle)->i;
+        GetPC(handle) = backupPC;
+
+
+    }
+    return false;
 }
 
 // CLEO5
