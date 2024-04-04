@@ -385,6 +385,7 @@ extern "C" void OnModPreLoad()
         void** fn = LookupForOpcodeFunc(CLEOOpcodesStorage, opcode);
         return (fn != NULL && *fn != NULL);
     };
+    cleo_addon_ifs.IsValidScriptHandle =    IsValidScriptHandle;
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
     logger->Info("CLEO Addon Initialized!");
 }

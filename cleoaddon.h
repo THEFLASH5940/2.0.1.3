@@ -54,6 +54,7 @@ struct cleo_addon_ifs_t
     ScriptAddonInfo&(*GetAddonInfo)(void* handle);
     void            (*UpdateCompareFlag)(void* handle, uint8_t flag);
     bool            (*IsOpcodeAlreadyExists)(uint16_t opcode);
+    bool            (*IsValidScriptHandle)(void* handle);
 };
 
 #endif // _CLEO_ADDON_H
