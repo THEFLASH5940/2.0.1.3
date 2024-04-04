@@ -583,10 +583,10 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
         uint8_t *backupPC = GetPC(lastScriptHandle[i]);
         GetPC(lastScriptHandle[i]) = lastScriptPC[i];
 
-        for(int i = 0; i < 32; ++i)
+        for(int j = 0; j < 32; ++j)
         {
             uint8_t datByte = Read1Byte(lastScriptHandle[i]);
-            snprintf(buf, sizeof(buf), "i = %d, byte = %02X (%c)", i, datByte, (char)datByte);
+            snprintf(buf, sizeof(buf), "i = %d, byte = %02X (%c)", j, datByte, (char)datByte);
             cleo->PrintToCleoLog(buf);
         }
         GetPC(lastScriptHandle[i]) = lastScriptPC[i];
