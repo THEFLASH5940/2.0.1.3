@@ -85,7 +85,7 @@ void** (*LookupForOpcodeFunc)(void* storage, uint16_t& opcode);
 extern unsigned char cleoData[100160];
 
 // CLEO crashlogging
-#define SCRIPTS_LOG_COUNT 4
+#define SCRIPTS_LOG_COUNT 16
 void *lastScriptHandle[SCRIPTS_LOG_COUNT] = {NULL};
 uint8_t *lastScriptPC[SCRIPTS_LOG_COUNT] = {NULL};
 
@@ -569,13 +569,13 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
     // Print lastScript* data to the cleo logging!
     if(!cleo) return;
     cleo->PrintToCleoLog("[ The game crashed ]");
-    for(int i = 0; i < SCRIPTS_LOG_COUNT; ++i)
+    cleo->PrintToCleoLog("Callstack:");
+
+    char buf[512];
+    int callNum = 0;
+    for(int i = SCRIPTS_LOG_COUNT-1; i >= 0; ++i)
     {
-        if(!lastScriptHandle[i] || !lastScriptPC[i]) break;
-    
-        char buf[512];
-        snprintf(buf, sizeof(buf), "Latest script handle: 0x%08X, PC: 0x%08X", (uint32_t)lastScriptHandle[i], (uint32_t)lastScriptPC[i]);
-        cleo->PrintToCleoLog(buf);
+        if(!lastScriptHandle[i] || !lastScriptPC[i]) continue;
     
         // Check if this script handle is still correct
         // If it is, we have a name, filename, a complete script code and more!
@@ -583,26 +583,11 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
         uint8_t *backupPC = GetPC(lastScriptHandle[i]);
         GetPC(lastScriptHandle[i]) = lastScriptPC[i];
 
-        for(int j = 0; j < 32; ++j)
-        {
-            uint8_t datByte = Read1Byte(lastScriptHandle[i]);
-            snprintf(buf, sizeof(buf), "i = %d, byte = %02X (%c)", j, datByte, (char)datByte);
-            cleo->PrintToCleoLog(buf);
-        }
-        GetPC(lastScriptHandle[i]) = lastScriptPC[i];
-    
         uint16_t lastScriptOpcode = Read2Bytes(lastScriptHandle[i]);
-        snprintf(buf, sizeof(buf), "Opcode: %04X", lastScriptOpcode);
-        cleo->PrintToCleoLog(buf);
-
         bool isCustom = GetAddonInfo(lastScriptHandle[i]).isCustom;
         const char* scrName = isCustom ? CLEO_GetScriptFilename(lastScriptHandle[i]) : ((GTAScript*)lastScriptHandle[i])->name;
-        snprintf(buf, sizeof(buf), "Script name: %s", scrName ? scrName : "(null)");
-        cleo->PrintToCleoLog(buf);
-
-        snprintf(buf, sizeof(buf), "A %d arguments are used in this opcode", GetVarArgCount(lastScriptHandle[i]));
+        snprintf(buf, sizeof(buf), "Call #%d, opcode %04X, script %s", callNum++, lastScriptOpcode, scrName);
         cleo->PrintToCleoLog(buf);
     }
-
     cleo->PrintToCleoLog("[ Crashlog ending ]");
 }
