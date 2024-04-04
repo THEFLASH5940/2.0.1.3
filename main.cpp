@@ -205,7 +205,7 @@ DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
         }
         lastScriptHandle[0] = handle;
         lastScriptPC[0] = GetPC(handle);
-        lastScriptOp[0] = Read2Bytes_NoSkip(handle);
+        lastScriptOp[0] = Read2Bytes_NoSkip(handle) & 0x7FFF;
     }
     
     int siz = pausedScripts.size();
