@@ -270,7 +270,7 @@ inline uint16_t& GetStackDepth(void* handle)
 }
 inline bool& GetCond(void* handle)
 {
-    return *(bool*)((uintptr_t)handle + ValueForGame(121, 121, 229));
+    return *(bool*)((uintptr_t)handle + ValueForGame(121, 121, 229, 525, 521));
 }
 inline bool& GetNotFlag(void* handle)
 {
@@ -853,6 +853,44 @@ inline const char* GetVarTypeName(eScriptParameterType type)
     }
     #undef STRP
     return "UNKNOWN";
+}
+
+extern GTAScript **pActiveScripts, **pIdleScripts;
+inline bool IsInActiveScripts(void* handle)
+{
+    for (GTAScript* script = *pActiveScripts; script != NULL; script = script->next)
+    {
+        if (script == handle)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+inline bool IsInPausedScripts(void* handle)
+{
+    for (GTAScript* script = *pIdleScripts; script != NULL; script = script->next)
+    {
+        if (script == handle)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+inline bool IsInCLEOScripts(void* handle)
+{
+    int len = GetScriptsStorageSize();
+    for(int i = 0; i < len; ++i)
+    {
+        int storageItem = *(int*)(*pScriptsStorage + i * 4);
+        if(*(void**)(storageItem + 28) == handle) return true;
+    }
+    return false;
+}
+inline bool IsValidScriptHandle(void* handle)
+{
+    return IsInActiveScripts(handle) || IsInPausedScripts(handle) || IsInCLEOScripts(handle);
 }
 
 // CLEO5

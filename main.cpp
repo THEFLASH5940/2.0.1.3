@@ -85,9 +85,11 @@ void** (*LookupForOpcodeFunc)(void* storage, uint16_t& opcode);
 extern unsigned char cleoData[100160];
 
 // CLEO crashlogging
-#define SCRIPTS_LOG_COUNT 16
-void *lastScriptHandle[SCRIPTS_LOG_COUNT] = {NULL};
-uint8_t *lastScriptPC[SCRIPTS_LOG_COUNT] = {NULL};
+#define SCRIPTS_LOG_COUNT 32
+bool scriptDebugger = true;
+void *lastScriptHandle[SCRIPTS_LOG_COUNT] = { NULL };
+uint8_t *lastScriptPC[SCRIPTS_LOG_COUNT] =  { NULL };
+uint16_t lastScriptOp[SCRIPTS_LOG_COUNT] =  { 0x0000 };
 
 // Config-functions
 const char* pLocations[] = 
@@ -112,8 +114,6 @@ void OnRedArrowChanged(int oldVal, int newVal, void* userdata)
     pCfgCLEORedArrow->SetBool(newVal != 0);
     cfg->Save();
 }
-
-
 
 extern "C" __attribute__((target("thumb-mode"))) __attribute__((naked)) void Opcode0DD2_inject()
 {
@@ -195,16 +195,18 @@ DECL_HOOKb(CLEO_OnOpcodeCall, void *storageItem, uint16_t opcode)
 void* g_pForceInterrupt = NULL;
 DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
 {
-    for(int i = SCRIPTS_LOG_COUNT-2; i >= 0; --i)
+    if(scriptDebugger)
     {
-        lastScriptHandle[i + 1] = lastScriptHandle[i];
-        lastScriptPC[i + 1] = lastScriptPC[i];
+        for(int i = SCRIPTS_LOG_COUNT-2; i >= 0; --i)
+        {
+            lastScriptHandle[i + 1] = lastScriptHandle[i];
+            lastScriptPC[i + 1] = lastScriptPC[i];
+            lastScriptOp[i + 1] = lastScriptOp[i];
+        }
+        lastScriptHandle[0] = handle;
+        lastScriptPC[0] = GetPC(handle);
+        lastScriptOp[0] = Read2Bytes_NoSkip(handle);
     }
-    lastScriptHandle[0] = handle;
-    lastScriptPC[0] = GetPC(handle);
-    
-    // no lastScriptOpcode here for optimisations!
-    // its inside lastScriptPC at this stage! :p
     
     int siz = pausedScripts.size();
     for (size_t i = 0; i < siz; ++i)
@@ -563,31 +565,55 @@ extern "C" void OnAllModsLoaded()
     }
 }
 
-
 extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t libaddr, mcontext_t* mcontext)
 {
     // Print lastScript* data to the cleo logging!
     if(!cleo) return;
     cleo->PrintToCleoLog("[ The game crashed ]");
-    cleo->PrintToCleoLog("Callstack:");
 
-    char buf[512];
-    int callNum = 0;
-    for(int i = SCRIPTS_LOG_COUNT-1; i >= 0; ++i)
+    if(scriptDebugger)
     {
-        if(!lastScriptHandle[i] || !lastScriptPC[i]) continue;
-    
-        // Check if this script handle is still correct
-        // If it is, we have a name, filename, a complete script code and more!
-        if(false) return;
-        uint8_t *backupPC = GetPC(lastScriptHandle[i]);
-        GetPC(lastScriptHandle[i]) = lastScriptPC[i];
+        char buf[512], defName[8], custName[128];
+        int callNum = 0;
 
-        uint16_t lastScriptOpcode = Read2Bytes(lastScriptHandle[i]);
-        bool isCustom = GetAddonInfo(lastScriptHandle[i]).isCustom;
-        const char* scrName = isCustom ? CLEO_GetScriptFilename(lastScriptHandle[i]) : ((GTAScript*)lastScriptHandle[i])->name;
-        snprintf(buf, sizeof(buf), "Call #%d, opcode %04X, script %s", callNum++, lastScriptOpcode, scrName);
-        cleo->PrintToCleoLog(buf);
+        cleo->PrintToCleoLog("The data below is not guaranteed to be correct!");
+        cleo->PrintToCleoLog("Calling history:");
+        for(int i = SCRIPTS_LOG_COUNT-1; i >= 0; --i)
+        {
+            if(!lastScriptHandle[i] || !lastScriptPC[i]) continue;
+        
+            // Check if this script handle is still correct
+            // If it is, we have a name, filename, a complete script code and more!
+            if(!IsValidScriptHandle(lastScriptHandle[i]))
+            {
+                // It does not contain a valid data anymore: was deleted or something like that.
+                snprintf(buf, sizeof(buf), "CALL #%d, Unknown Script 0x%08X, OpCode %04X", ++callNum, (uintptr_t)lastScriptHandle[i], lastScriptOp[i]);
+                cleo->PrintToCleoLog(buf);
+                continue;
+            }
+
+            uint8_t *backupPC = GetPC(lastScriptHandle[i]);
+            GetPC(lastScriptHandle[i]) = lastScriptPC[i];
+
+            bool isCustom = GetAddonInfo(lastScriptHandle[i]).isCustom;
+            uint16_t lastScriptOpcode = Read2Bytes(lastScriptHandle[i]);
+            strncpy(defName, ((GTAScript*)lastScriptHandle[i])->name, sizeof(defName)); defName[sizeof(defName)-1] = 0;
+            custName[0] = 0;
+            if(isCustom)
+            {
+                const char* filename = CLEO_GetScriptFilename(lastScriptHandle[i]);
+                if(filename) strncpy(custName, filename, sizeof(custName)); custName[sizeof(custName)-1] = 0;
+            }
+            
+            snprintf(buf, sizeof(buf), "CALL #%d, %s Script '%s', OpCode %04X", ++callNum, isCustom ? "CLEO" : "Game", custName[0] != 0 ? custName : defName, lastScriptOpcode);
+            cleo->PrintToCleoLog(buf);
+
+            GetPC(lastScriptHandle[i]) = backupPC;
+        }
+        cleo->PrintToCleoLog("[ Crashlog Ending ]");
     }
-    cleo->PrintToCleoLog("[ Crashlog ending ]");
+    else
+    {
+        cleo->PrintToCleoLog("[ Script debugging was not enabled ]");
+    }
 }

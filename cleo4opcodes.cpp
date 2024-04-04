@@ -27,7 +27,7 @@ std::set<FILE*> gFilesMap;
 
 // Game Vars
 uint8_t* ScriptSpace;
-GTAScript **pActiveScripts;
+GTAScript **pActiveScripts, **pIdleScripts;
 uint8_t* LocalVariablesForCurrentMission;
 int* ScriptParams;
 uintptr_t gMobileMenu;
@@ -220,7 +220,7 @@ CLEO_Fn(GET_THIS_SCRIPT_STRUCT)
 CLEO_Fn(GOSUB_IF_FALSE)
 {
     int offset = cleo->ReadParam(handle)->i;
-    bool condition = *(bool*)((uintptr_t)handle + ValueForGame(120, 121, 229, 525, 521));
+    bool condition = GetCond(handle);
     if(!condition)
     {
         PushStack(handle);
@@ -321,7 +321,7 @@ CLEO_Fn(CLEO_CALL)
     char buf[MAX_STR_LEN];
     static int arguments[40];
     int maxParams = ValueForSA(40, 16);
-    int* scope = (int*)((uintptr_t)handle + ValueForGame(48, 48, 60, 96, 520));
+    int* scope = GetLocalVars(handle);
     if(*nGameIdent == GTASA && IsMissionScript(handle)) scope = (int*)LocalVariablesForCurrentMission;
     int* scopeEnd = scope + maxParams;
     int* storedLocals = scmFunc->savedTls;
@@ -1464,6 +1464,7 @@ void Init4Opcodes()
     SET_TO(ScriptSpace,         cleo->GetMainLibrarySymbol("_ZN11CTheScripts11ScriptSpaceE"));
     SET_TO(UpdateCompareFlag,   cleo->GetMainLibrarySymbol("_ZN14CRunningScript17UpdateCompareFlagEh"));
     SET_TO(pActiveScripts,      cleo->GetMainLibrarySymbol("_ZN11CTheScripts14pActiveScriptsE"));
+    SET_TO(pIdleScripts,        cleo->GetMainLibrarySymbol("_ZN11CTheScripts12pIdleScriptsE"));
     SET_TO(ScriptParams,        cleo->GetMainLibrarySymbol("ScriptParams"));
     SET_TO(GetPedFromRef,       cleo->GetMainLibrarySymbol("_ZN6CPools6GetPedEi"));
     SET_TO(GetVehicleFromRef,   cleo->GetMainLibrarySymbol("_ZN6CPools10GetVehicleEi"));
