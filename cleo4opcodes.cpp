@@ -259,8 +259,9 @@ CLEO_Fn(RETURN_IF_FALSE)
 
 CLEO_Fn(LOAD_DYNAMIC_LIBRARY)
 {
-    char buf[64]; CLEO_ReadStringEx(handle, buf, sizeof(buf));
-    void* libHandle = dlopen(buf, RTLD_NOW);
+    char buf[MAX_STR_LEN]; CLEO_ReadStringEx(handle, buf, sizeof(buf));
+    std::string str = ResolvePath(handle, buf);
+    void* libHandle = dlopen(str.c_str(), RTLD_NOW);
 
     cleo->GetPointerToScriptVar(handle)->i = (int)libHandle;
     UpdateCompareFlag(handle, libHandle != NULL);
