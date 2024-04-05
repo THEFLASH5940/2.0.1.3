@@ -334,6 +334,78 @@ CLEO_Fn(GET_SCRIPT_FILENAME)
         }
     }
 }
+CLEO_Fn(DELETE_FILE)
+{
+    char path[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, path, sizeof(path));
+    std::string str = ResolvePath(handle, path);
+    int removeStatus = remove(str.c_str());
+    UpdateCompareFlag(handle, removeStatus == 0);
+}
+CLEO_Fn(DELETE_DIRECTORY)
+{
+    char path[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, path, sizeof(path));
+    std::string str = ResolvePath(handle, path);
+    bool deleteContents = cleo->ReadParam(handle)->i;
+    bool removed = deleteContents ? fs::remove(str.c_str()) : fs::remove_all(str.c_str());
+    UpdateCompareFlag(handle, removed);
+}
+CLEO_Fn(MOVE_FILE)
+{
+    char from[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, from, sizeof(from));
+    std::string fromstr = ResolvePath(handle, from);
+
+    char to[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, to, sizeof(to));
+    std::string tostr = ResolvePath(handle, to);
+
+    std::error_code ec; ec.clear();
+    fs::rename(from, to, ec);
+    UpdateCompareFlag(handle, ec.value() == 0);
+}
+CLEO_Fn(MOVE_DIRECTORY)
+{
+    char from[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, from, sizeof(from));
+    std::string fromstr = ResolvePath(handle, from);
+
+    char to[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, to, sizeof(to));
+    std::string tostr = ResolvePath(handle, to);
+
+    std::error_code ec; ec.clear();
+    fs::rename(from, to, ec);
+    UpdateCompareFlag(handle, ec.value() == 0);
+}
+CLEO_Fn(COPY_FILE)
+{
+    char from[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, from, sizeof(from));
+    std::string fromstr = ResolvePath(handle, from);
+
+    char to[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, to, sizeof(to));
+    std::string tostr = ResolvePath(handle, to);
+
+    bool copied = fs::copy_file(from, to, fs::copy_options::skip_existing);
+    UpdateCompareFlag(handle, copied);
+}
+CLEO_Fn(COPY_DIRECTORY)
+{
+    char from[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, from, sizeof(from));
+    std::string fromstr = ResolvePath(handle, from);
+
+    char to[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, to, sizeof(to));
+    std::string tostr = ResolvePath(handle, to);
+
+    std::error_code ec; ec.clear();
+    fs::copy(from, to, fs::copy_options::skip_existing | fs::copy_options::directories_only, ec);
+    UpdateCompareFlag(handle, ec.value() == 0);
+}
 
 // CLEO 5
 CLEO_Fn(CLEO_RETURN_WITH)
@@ -390,6 +462,12 @@ void Init5Opcodes()
     CLEO_RegisterOpcode(0x2302, WRITE_BLOCK_TO_FILE); // 2302=3, write_block_to_file %1d% size %2d% address %3d% // IF and SET
     CLEO_RegisterOpcode(0x2303, RESOLVE_FILEPATH); // 2303=2, %2s% = resolve_filepath %1s%
     CLEO_RegisterOpcode(0x2304, GET_SCRIPT_FILENAME); // 2304=3, %3s% = get_script_filename %1d% full_path %2d% // IF and SET
+    CLEO_RegisterOpcode(0x0B00, DELETE_FILE); // 0B00=1, delete_file %1s% //IF and SET
+    CLEO_RegisterOpcode(0x0B01, DELETE_DIRECTORY); // 0B01=1, delete_directory %1s% with_all_files_and_subdirectories %2d% //IF and SET
+    CLEO_RegisterOpcode(0x0B02, MOVE_FILE); // 0B02=2, move_file %1s% to %2s% //IF and SET
+    CLEO_RegisterOpcode(0x0B03, MOVE_DIRECTORY); // 0B03=2, move_directory %1s% to %2s% //IF and SET
+    CLEO_RegisterOpcode(0x0B04, COPY_FILE); // 0B04=2, copy_file %1s% to %2s% //IF and SET
+    CLEO_RegisterOpcode(0x0B05, COPY_DIRECTORY); // 0B05=2, copy_directory %1d% to %2d% //IF and SET
 
     // CLEO 5
     CLEO_RegisterOpcode(0x2002, CLEO_RETURN_WITH); // 2002=-1, cleo_return_with ...

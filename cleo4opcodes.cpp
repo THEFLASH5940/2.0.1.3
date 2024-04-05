@@ -185,7 +185,13 @@ CLEO_Fn(OPEN_FILE)
     CLEO_ReadStringEx(handle, filename, sizeof(filename));
     CLEO_ReadStringEx(handle, mode, sizeof(mode));
 
-    FILE* file = DoFile(filename, mode);
+    int i = 0; while(filename[i] != 0) // A little hack (cheeseburger is like WHAAAA)
+    {
+        if(filename[i] == '\\') filename[i] = '/';
+        ++i;
+    }
+    std::string str = ResolvePath(handle, filename);
+    FILE* file = DoFile(str.c_str(), mode);
     cleo->GetPointerToScriptVar(handle)->i = (int)file;
     UpdateCompareFlag(handle, file != NULL);
 }
@@ -1131,10 +1137,9 @@ CLEO_Fn(DOES_DIRECTORY_EXIST)
         ++i;
     }
     
-    char path[256];
-    snprintf(path, sizeof(path), "%s/%s", aml->GetAndroidDataPath(), filepath);
+    std::string str = ResolvePath(handle, filepath);
 
-    DIR* dir = opendir(path);
+    DIR* dir = opendir(str.c_str());
     UpdateCompareFlag(handle, dir != NULL);
     if(dir) closedir(dir);
 }
@@ -1149,10 +1154,9 @@ CLEO_Fn(CREATE_DIRECTORY)
         ++i;
     }
     
-    char path[256];
-    snprintf(path, sizeof(path), "%s/%s", aml->GetAndroidDataPath(), filepath);
+    std::string str = ResolvePath(handle, filepath);
 
-    int result = mkdir(path, 0777);
+    int result = mkdir(str.c_str(), 0777);
     UpdateCompareFlag(handle, result == 0);
 }
 
@@ -1166,10 +1170,9 @@ CLEO_Fn(FIND_FIRST_FILE)
         ++i;
     }
     
-    char path[256];
-    snprintf(path, sizeof(path), "%s/%s", aml->GetAndroidDataPath(), filepath);
+    std::string str = ResolvePath(handle, filepath);
 
-    DIR* dir = opendir(path);
+    DIR* dir = opendir(str.c_str());
     if(dir)
     {
         struct dirent *entry;
@@ -1177,13 +1180,13 @@ CLEO_Fn(FIND_FIRST_FILE)
         char filecheckpath[256];
         while((entry = readdir(dir)) != NULL)
         {
-            snprintf(filecheckpath, sizeof(filecheckpath), "%s/%s", path, entry->d_name);
+            snprintf(filecheckpath, sizeof(filecheckpath), "%s/%s", str.c_str(), entry->d_name);
             lstat(filecheckpath, &buf);
 
             if(!S_ISDIR(buf.st_mode))
             {
                 CLEO_DirScan *scan = new CLEO_DirScan;
-                strncpy(scan->path, path, sizeof(scan->path));
+                strncpy(scan->path, str.c_str(), sizeof(scan->path));
                 scan->dir = dir;
 
                 CLEO_WriteStringEx(handle, entry->d_name);

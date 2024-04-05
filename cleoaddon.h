@@ -2,6 +2,7 @@
 #define _CLEO_ADDON_H
 
 #include <stdint.h>
+#include <string.h>
 
 #define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
 #define CLEO_Fn(h) void h (void *handle, uint32_t *ip, uint16_t opcode, const char *name)
@@ -65,6 +66,8 @@ struct cleo_addon_ifs_t
     void            (*UpdateCompareFlag)(void* handle, uint8_t flag);
     bool            (*IsOpcodeAlreadyExists)(uint16_t opcode);
     bool            (*IsValidScriptHandle)(void* handle);
+    std::string     (*ResolvePath)(void* handle, const char* path, const char* customWorkDir);
+    void            (*AddGXTLabel)(const char* gxtLabel, const char* text);
 };
 
 #endif // _CLEO_ADDON_H

@@ -236,6 +236,7 @@ DECL_HOOK(int8_t, ProcessOneCommand, void* handle)
     return retCode;
 }
 
+void AddGXTLabel(const char* gxtLabel, const char* text);
 extern "C" void OnModPreLoad()
 {
     logger->SetTag("CLEO Mod");
@@ -396,6 +397,8 @@ extern "C" void OnModPreLoad()
         return (fn != NULL && *fn != NULL);
     };
     cleo_addon_ifs.IsValidScriptHandle =    IsValidScriptHandle;
+    cleo_addon_ifs.ResolvePath =            ResolvePath;
+    cleo_addon_ifs.AddGXTLabel =            AddGXTLabel;
     RegisterInterface("CLEOAddon", &cleo_addon_ifs);
     logger->Info("CLEO Addon Initialized!");
 }

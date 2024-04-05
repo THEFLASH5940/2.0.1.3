@@ -15,6 +15,8 @@ extern uint8_t* ScriptSpace;
 extern int* pScriptsStorage, *pScriptsStorageEnd;
 extern void (*UpdateCompareFlag)(void*, uint8_t);
 
+namespace fs = std::filesystem;
+
 #define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
 #define CLEO_Fn(h) void h (void *handle, uint32_t *ip, uint16_t opcode, const char *name)
 
@@ -968,8 +970,8 @@ inline std::string ResolvePath(void* handle, const char* path, const char* custo
     if(!path) return "";
 
     enum class VPref{ None, Game, User, Script, Cleo, Modules } virtualPrefix = VPref::None;
-    std::filesystem::path fsPath = std::filesystem::path(path);
-    std::filesystem::path::iterator root = fsPath.begin();
+    fs::path fsPath = fs::path(path);
+    fs::path::iterator root = fsPath.begin();
     if(root != fsPath.end())
     {
         if(*root == DIR_GAME) virtualPrefix = VPref::Game;
@@ -979,7 +981,7 @@ inline std::string ResolvePath(void* handle, const char* path, const char* custo
         else if (*root == DIR_MODULES) virtualPrefix = VPref::Modules;
     }
 
-    std::filesystem::path resolved;
+    fs::path resolved;
     switch(virtualPrefix)
     {
         default: //case VPref::None:
@@ -991,7 +993,7 @@ inline std::string ResolvePath(void* handle, const char* path, const char* custo
                 else
                     fsPath = GetScriptWorkDir(handle) / fsPath;
             }
-            return std::filesystem::weakly_canonical(fsPath).string();
+            return fs::weakly_canonical(fsPath).string();
         }
 
         case VPref::User:
@@ -1018,5 +1020,5 @@ inline std::string ResolvePath(void* handle, const char* path, const char* custo
     }
 
     for(auto it = ++fsPath.begin(); it != fsPath.end(); it++) resolved /= *it;
-    return std::filesystem::weakly_canonical(resolved).string(); // collapse "..\" uses
+    return fs::weakly_canonical(resolved).string(); // collapse "..\" uses
 }
