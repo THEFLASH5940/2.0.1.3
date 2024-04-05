@@ -140,6 +140,11 @@ CLEO_Fn(INT_DIV)
     cleo->GetPointerToScriptVar(handle)->i = a / b;
 }
 
+CLEO_Fn(SAVE_THIS_CUSTOM_SCRIPT)
+{
+    GetAddonInfo(handle).enableThreadSaving = true;
+}
+
 CLEO_Fn(GET_PED_POINTER)
 {
     int ref = cleo->ReadParam(handle)->i;
@@ -1547,7 +1552,7 @@ void Init4Opcodes()
     //CLEO_RegisterOpcode(0x0A92, STREAM_CUSTOM_SCRIPT); // 
     //CLEO_RegisterOpcode(0x0A93, TERMINATE_THIS_CUSTOM_SCRIPT); // 
     //CLEO_RegisterOpcode(0x0A94, LOAD_AND_LAUNCH_CUSTOM_MISSION); // 
-    //CLEO_RegisterOpcode(0x0A95, SAVE_THIS_CUSTOM_SCRIPT); // 
+    CLEO_RegisterOpcode(0x0A95, SAVE_THIS_CUSTOM_SCRIPT); // 0A95=0,enable_thread_saving
     CLEO_RegisterOpcode(0x0A96, GET_PED_POINTER); // 0A96=2,%2d% = actor %1d% struct
     CLEO_RegisterOpcode(0x0A97, GET_VEHICLE_POINTER); // 0A97=2,%2d% = car %1d% struct
     CLEO_RegisterOpcode(0x0A98, GET_OBJECT_POINTER); // 0A98=2,%2d% = object %1d% struct

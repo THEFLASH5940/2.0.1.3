@@ -74,6 +74,20 @@ CLEO_Fn(TRACE)
 }
 CLEO_Fn(LOG_TO_FILE)
 {
+    char to[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, to, sizeof(to));
+    std::string tostr = ResolvePath(handle, to);
+
+    bool bTimestamp = cleo->ReadParam(handle)->i;
+    if(bTimestamp)
+    {
+
+    }
+
+    char fmt[MAX_STR_LEN], buf[MAX_STR_LEN];
+    CLEO_ReadStringEx(handle, fmt, sizeof(fmt));
+    CLEO_FormatString(handle, buf, sizeof(buf), fmt);
+    
     // Need additional work
 }
 

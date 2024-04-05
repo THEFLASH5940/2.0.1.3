@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <list>
 
 #define CLEO_RegisterOpcode(x, h) cleo->RegisterOpcode(x, h); cleo->RegisterOpcodeFunction(#h, h)
 #define CLEO_Fn(h) void h (void *handle, uint32_t *ip, uint16_t opcode, const char *name)
@@ -12,13 +13,19 @@ struct ScriptAddonInfo
     ScriptAddonInfo()
     {
         workDir.clear();
+        childThreads.clear();
+        parentThread = NULL;
         scmFuncId = 0;
         isCustom = false;
         debugMode = false;
         enableThreadSaving = false;
     }
 
+    // GetInterfaceVersion() == 1
     std::string workDir;
+    std::list<void*> childThreads;
+    void* parentThread;
+    
     uint16_t scmFuncId : 10; // [0-1024] - 2^10
     uint16_t isCustom : 1; // [0-1]
     uint16_t debugMode : 1; // [0-1]
