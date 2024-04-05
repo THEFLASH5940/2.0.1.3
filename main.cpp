@@ -16,6 +16,8 @@ cleo_ifs_t* cleo = nullptr;
 
 #include "cleoaddon.h"
 cleo_addon_ifs_t cleo_addon_ifs;
+uint16_t FreeScriptAddonInfoId = 1; // 0 is "not assigned" (used for dumbo scripts without that info)
+ScriptAddonInfo ScriptAddonInfosStorage[0x400];
 
 // SAUtils
 #include "isautils.h"
@@ -162,7 +164,11 @@ DECL_HOOKv(CLEO_StartScripts)
         if(storageItem != 0 && *(int*)(storageItem + 24) == -1)
         {
             void* handle = *(void**)(storageItem + 28);
-            if(handle != NULL) GetAddonInfo(handle).isCustom = true;
+            if(handle != NULL)
+            {
+                AssignAddonInfo(handle);
+                GetAddonInfo(handle).isCustom = true;
+            }
         }
     }
 }
@@ -184,7 +190,11 @@ DECL_HOOKb(CLEO_OnOpcodeCall, void *storageItem, uint16_t opcode)
             if(storageItem && *(int*)(storageItem + 24) != -1 && *(int*)(storageItem + 24) == *ScriptParams)
             {
                 void* handle = *(void**)(storageItem + 28);
-                if(handle != NULL) GetAddonInfo(handle).isCustom = true;
+                if(handle != NULL)
+                {
+                    AssignAddonInfo(handle);
+                    GetAddonInfo(handle).isCustom = true;
+                }
                 return ret;
             }
         }

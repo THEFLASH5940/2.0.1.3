@@ -8,11 +8,21 @@
 
 struct ScriptAddonInfo
 {
+    ScriptAddonInfo()
+    {
+        workDir.clear();
+        scmFuncId = 0;
+        isCustom = false;
+        debugMode = false;
+        enableThreadSaving = false;
+    }
+
+    std::string workDir;
     uint16_t scmFuncId : 10; // [0-1024] - 2^10
     uint16_t isCustom : 1; // [0-1]
     uint16_t debugMode : 1; // [0-1]
-    uint16_t pad : 4;
-}; // max is 16 bytes (uint16_t)
+    uint16_t enableThreadSaving : 1; // [0-1]
+};
 
 
 struct cleo_addon_ifs_t

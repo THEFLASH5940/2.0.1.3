@@ -680,9 +680,19 @@ inline bool IsCLEORelatedGXTKey(char* gxtLabel)
 
     return false; // uh-nuh
 }
+extern uint16_t FreeScriptAddonInfoId;
+extern ScriptAddonInfo ScriptAddonInfosStorage[0x400];
+inline uint16_t AssignAddonInfo(void* handle)
+{
+    uint16_t id = FreeScriptAddonInfoId++;
+    *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0)) = id;
+    return id;
+}
 inline ScriptAddonInfo& GetAddonInfo(void* handle)
 {
-    return *(ScriptAddonInfo*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0));
+    uint16_t id = *(uint16_t*)((uintptr_t)handle + ValueForGame(0x26, 0x2E, 0x3A, 0, 0));
+    if(!id) id = AssignAddonInfo(handle);
+    return ScriptAddonInfosStorage[id];
 }
 inline uint16_t GetScmFunc(void* handle)
 {
@@ -906,7 +916,7 @@ inline bool IsParamString(void* handle, bool checkIfPointer = false)
         void* probMem = (void*)cleo->ReadParam(handle)->i;
         GetPC(handle) = backupPC;
 
-
+        if(IsAlloced(probMem)) return true;
     }
     return false;
 }
@@ -927,9 +937,19 @@ static const char DIR_SCRIPT[] = "."; // current script directory
 static const char DIR_CLEO[] = "cleo:"; // game\cleo directory
 static const char DIR_MODULES[] = "modules:"; // game\cleo\modules directory
 
-inline const char* GetWorkDir()
+inline const char* GetFilesDir()
 {
     return aml->GetAndroidDataPath();
+}
+inline std::string& GetWorkDir(void* handle)
+{
+    return GetAddonInfo(handle).workDir;
+}
+inline const char* GetScriptWorkDir(void* handle)
+{
+    std::string& workDir = GetWorkDir(handle);
+    if(GetAddonInfo(handle).isCustom && !workDir.empty()) return workDir.c_str();
+    return GetFilesDir();
 }
 inline const char* GetUserDirectory()
 {
@@ -969,7 +989,7 @@ inline std::string ResolvePath(void* handle, const char* path, const char* custo
                 if(customWorkDir != NULL)
                     fsPath = ResolvePath(handle, customWorkDir) / fsPath;
                 else
-                    fsPath = GetWorkDir() / fsPath;
+                    fsPath = GetScriptWorkDir(handle) / fsPath;
             }
             return std::filesystem::weakly_canonical(fsPath).string();
         }
@@ -982,7 +1002,7 @@ inline std::string ResolvePath(void* handle, const char* path, const char* custo
             if(handle && GetAddonInfo(handle).isCustom) resolved = GetCleoDir();
             else
             {
-                resolved = GetWorkDir();
+                resolved = GetFilesDir();
                 resolved /= "data";
                 resolved /= "script";
             }

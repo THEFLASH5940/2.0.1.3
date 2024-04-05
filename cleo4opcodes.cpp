@@ -158,6 +158,27 @@ CLEO_Fn(GET_OBJECT_POINTER)
     cleo->GetPointerToScriptVar(handle)->i = GetObjectFromRef(ref);
 }
 
+CLEO_Fn(SET_CURRENT_DIRECTORY)
+{
+    const char* path;
+    char buf[MAX_STR_LEN];
+    if(IsParamString(handle))
+    {
+        path = CLEO_ReadStringEx(handle, buf, sizeof(buf));
+    }
+    else
+    {
+        int idx = cleo->ReadParam(handle)->i;
+        switch(idx)
+        {
+            default: path = DIR_GAME;   break;
+            case 1:  path = DIR_USER;   break;
+            case 2:  path = DIR_SCRIPT; break;
+        }
+    }
+    GetAddonInfo(handle).workDir = path;
+}
+
 CLEO_Fn(OPEN_FILE)
 {
     char filename[MAX_STR_LEN], mode[10];
@@ -1513,9 +1534,8 @@ void Init4Opcodes()
         SET_TO(curCheatCar_VC, cleo->GetMainLibrarySymbol("curCheatCar"));
     }
     
-    // Those are WIDGET opcodes on Mobile (thanks WarDrum, lol)
-    //CLEO_RegisterOpcode(0x0A8C, WRITE_MEMORY); // 
-    //CLEO_RegisterOpcode(0x0A8D, READ_MEMORY); // 
+    //CLEO_RegisterOpcode(0x0A8C, WRITE_MEMORY); // WIDGET opcode on Mobile (thanks WarDrum, lol)
+    //CLEO_RegisterOpcode(0x0A8D, READ_MEMORY); // WIDGET opcode on Mobile (thanks WarDrum, lol)
     CLEO_RegisterOpcode(0x0A8E, INT_ADD); // 0A8E=3,%3d% = %1d% + %2d% ; int
     CLEO_RegisterOpcode(0x0A8F, INT_SUB); // 0A8F=3,%3d% = %1d% - %2d% ; int
     CLEO_RegisterOpcode(0x0A90, INT_MUL); // 0A90=3,%3d% = %1d% * %2d% ; int
@@ -1527,7 +1547,7 @@ void Init4Opcodes()
     CLEO_RegisterOpcode(0x0A96, GET_PED_POINTER); // 0A96=2,%2d% = actor %1d% struct
     CLEO_RegisterOpcode(0x0A97, GET_VEHICLE_POINTER); // 0A97=2,%2d% = car %1d% struct
     CLEO_RegisterOpcode(0x0A98, GET_OBJECT_POINTER); // 0A98=2,%2d% = object %1d% struct
-    //CLEO_RegisterOpcode(0x0A99, SET_CURRENT_DIRECTORY); // 
+    CLEO_RegisterOpcode(0x0A99, SET_CURRENT_DIRECTORY); // 0A99=1,set_current_directory %1b:userdir/rootdir%
     CLEO_RegisterOpcode(0x0A9A, OPEN_FILE); // 0A9A=3,%3d% = openfile %1d% mode %2d% // IF and SET
     CLEO_RegisterOpcode(0x0A9B, CLOSE_FILE); // 0A9B=1,closefile %1d%
     CLEO_RegisterOpcode(0x0A9C, GET_FILE_SIZE); // 0A9C=2,%2d% = file %1d% size
