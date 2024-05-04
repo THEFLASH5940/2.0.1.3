@@ -358,6 +358,7 @@ CLEO_Fn(CLEO_CALL)
     if(*nGameIdent == GTASA && IsMissionScript(handle)) scope = (int*)LocalVariablesForCurrentMission;
     int* scopeEnd = scope + maxParams;
     int* storedLocals = scmFunc->savedTls;
+    scmFunc->callArgCount = nParams;
 
     // collect arguments
     uint8_t max_i = nParams < maxParams ? nParams : maxParams;
@@ -1660,3 +1661,6 @@ void Init4Opcodes()
     CLEO_RegisterOpcode(0x0AFC, LOAD_VARS); // 0AFC=-1,load_script_vars_named %1d% //IF and SET
     CLEO_RegisterOpcode(0x0AFD, DELETE_VARS_SAVE); // 0AFD=1,delete_script_vars_save %1d% //IF and SET
 }
+
+size_t ScmFunction::allocationPlace = 0;
+ScmFunction* ScmFunction::Store[store_size] = { NULL };

@@ -1,6 +1,7 @@
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <cleohelpers.h>
+#include <cleo4scmfunc.h>
 
 // There wont be that much opcodes, because some of them are in their own plugins
 
@@ -422,6 +423,11 @@ CLEO_Fn(COPY_DIRECTORY)
 }
 
 // CLEO 5
+CLEO_Fn(GET_CLEO_ARG_COUNT)
+{
+    ScmFunction *scmFunc = ScmFunction::Store[GetScmFunc(handle)];
+    cleo->GetPointerToScriptVar(handle)->i = scmFunc->callArgCount;
+}
 CLEO_Fn(CLEO_RETURN_WITH)
 {
     int argCount = GetVarArgCount(handle);
@@ -484,6 +490,7 @@ void Init5Opcodes()
     CLEO_RegisterOpcode(0x0B05, COPY_DIRECTORY); // 0B05=2, copy_directory %1d% to %2d% //IF and SET
 
     // CLEO 5
+    CLEO_RegisterOpcode(0x2000, GET_CLEO_ARG_COUNT); // 2000=1, %1d% = get_cleo_arg_count
     CLEO_RegisterOpcode(0x2002, CLEO_RETURN_WITH); // 2002=-1, cleo_return_with ...
     CLEO_RegisterOpcode(0x2003, CLEO_RETURN_FAIL); // 2003=-1, cleo_return_fail
 }

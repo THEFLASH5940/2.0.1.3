@@ -52,6 +52,7 @@ struct ScmFunction
     int savedTls[40];
     int* savedRets[40]; // EXPERIMENTAL
     std::list<std::string> stringParams; // texts with this scope lifetime
+    int callArgCount;
     bool savedCondResult;
     bool savedNotFlag;
     static const size_t store_size = 0x400;
@@ -135,5 +136,3 @@ struct ScmFunction
         }
     }
 };
-size_t ScmFunction::allocationPlace = 0;
-ScmFunction* ScmFunction::Store[store_size] = { NULL };
