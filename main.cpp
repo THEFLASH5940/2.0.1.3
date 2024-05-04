@@ -88,7 +88,7 @@ extern unsigned char cleoData[100160];
 
 // CLEO crashlogging
 #define SCRIPTS_LOG_COUNT 32
-bool scriptDebugger = true;
+bool scriptDebugger = false;
 void *lastScriptHandle[SCRIPTS_LOG_COUNT] = { NULL };
 uint8_t *lastScriptPC[SCRIPTS_LOG_COUNT] =  { NULL };
 uint16_t lastScriptOp[SCRIPTS_LOG_COUNT] =  { 0x0000 };
@@ -245,6 +245,7 @@ extern "C" void OnModPreLoad()
     pCfgCLEOMenuColor = cfg->Bind("CLEO_MenuColor", "55 127 175 150");
     pCfgCLEOMenuArrowColor = cfg->Bind("CLEO_MenuArrowColor", "55 127 175 100");
     pCfgCLEOMenuArrowPressedAlpha = cfg->Bind("CLEO_MenuArrowPressedAlpha", "180");
+    scriptDebugger = cfg->GetBool("ScriptDebugger", scriptDebugger);
     
     pCLEO = dlopen("libcleo.so", RTLD_LAZY);
     if(!pCLEO)
