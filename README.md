@@ -2,6 +2,8 @@
 Well, yes! This is a CLEO wrapped in an AML mod!
 Original author of a CLEO on Android is Alexander Blade (http://www.dev-c.com/).
 
+**Please keep in mind that you should not download random CLEO scripts! They may be malicious and may delete your game data!**
+
 ### Why does it exists?
 This one allows mods made specially for AML to communicate with the CLEO. Also, it has NEW settings that you WILL LIKE!
 
@@ -103,3 +105,38 @@ If you need extensions such as IniFiles or IntOperations, they are already avail
 
 https://github.com/AndroidModLoader/GTA_CLEO_IniFiles 
 https://github.com/AndroidModLoader/GTA_CLEO_IntOperations
+
+### About CLEO5
+This version of a mod contains a few CLEO5 opcodes. I dont wanna continue working on it because it's a broken ass that is not completed yet.
+
+Opcodes from CLEO5 in this mod (except debugging ones!!!):
+```
+2400=3, copy_memory %1d% to %2d% size %3d%
+2401=4, read_memory_with_offset %1d% offset %2d% size %3d% store_to %4d%
+2402=4, write_memory_with_offset %1d% offset %2d% size %3d% value %4d%
+2403=1, forget_memory %1d%
+2404=1, get_script_struct_just_created %1d%
+2405=1, is_script_running %1d%
+2406=1, get_script_struct_from_filename %1s%
+2407=3, is_memory_equal address_a %1d% address_b %2d% size %d3%
+2600=1, is_text_empty %1s%
+2601=3, is_text_equal %1s% another %2s% ignore_case %3d%
+2602=3, is_text_in_text %1s% sub_text %2s% ignore_case %3d%
+2603=3, is_text_prefix %1s% prefix %2s% ignore_case %3d%
+2604=3, is_text_suffix %1s% suffix %2s% ignore_case %3d%
+2605=-1, display_text_formatted offset_left %1d% offset_top %2d% format %3d% args
+2300=2, get_file_position %1d% store_to %2d%
+2301=3, read_block_from_file %1d% size %2d% buffer %3d% // IF and SET
+2302=3, write_block_to_file %1d% size %2d% address %3d% // IF and SET
+2303=2, %2s% = resolve_filepath %1s%
+2304=3, %3s% = get_script_filename %1d% full_path %2d% // IF and SET
+0B00=1, delete_file %1s% //IF and SET
+0B01=1, delete_directory %1s% with_all_files_and_subdirectories %2d% //IF and SET
+0B02=2, move_file %1s% to %2s% //IF and SET
+0B03=2, move_directory %1s% to %2s% //IF and SET
+0B04=2, copy_file %1s% to %2s% //IF and SET
+0B05=2, copy_directory %1d% to %2d% //IF and SET
+2000=1, %1d% = get_cleo_arg_count
+2002=-1, cleo_return_with ...
+2003=-1, cleo_return_fail
+```
