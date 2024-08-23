@@ -28,7 +28,7 @@ ISAUtils* sautils = nullptr;
 
 MYMODCFG(net.rusjj.cleolib, CLEO Library, 2.0.1.6, Alexander Blade & RusJJ & XMDS)
 BEGIN_DEPLIST()
-    ADD_DEPENDENCY_VER(net.rusjj.aml, 1.2.1)
+    ADD_DEPENDENCY_VER(net.rusjj.aml, 1.2.2)
 END_DEPLIST()
 
 inline size_t __strlen(const char *str)
@@ -123,31 +123,31 @@ extern "C" __attribute__((target("thumb-mode"))) __attribute__((naked)) void Opc
 
     __asm volatile(
     ".thumb\n"
-        "PUSH {R4-R7,LR}\n"
-        "MOV R4, R0\n" //R0 = pointers to the first 4 parameters of the function
-        "MOV R5, R1\n" //R1 = function addr 
-        "MOVS R6, #0x10\n" //It starts from R4
+        "PUSH {R4-R7, LR}\n"
+        "MOV R4, R0\n"          // R0 = pointers to the first 4 parameters of the function
+        "MOV R5, R1\n"          // R1 = function addr 
+        "MOVS R6, #0x10\n"      // It starts from R4
         "MOVS R7, #0\n"
-        "SUB SP, #0xB8\n" //The maximum setting of the stack is 46 parameters
+        "SUB SP, #0xB8\n"       // The maximum setting of the stack is 46 parameters
 
         "loc_1:\n"
         "CMP R7, #0xB8\n"
         "BEQ loc_2\n"
-        "LDR R1, [R0, R6]\n" //Read parameters from reg in 0DD3 in cleo. It starts from R4
-        "STR.W R1, [SP, R7]\n" //Write the extracted parameters to the stack
-        "ADDS R6, #4\n" //Next parameter
-        "ADDS R7, #4\n" //Stack +4 to save the next parameter
+        "LDR R1, [R0, R6]\n"    // Read parameters from reg in 0DD3 in cleo. It starts from R4
+        "STR.W R1, [SP, R7]\n"  // Write the extracted parameters to the stack
+        "ADDS R6, #4\n"         // Next parameter
+        "ADDS R7, #4\n"         // Stack +4 to save the next parameter
         "B loc_1\n"
 
         "loc_2:\n"
-        "LDR R0, [R4]\n" //0DD3 context_set_reg 0
-        "LDR R1, [R4,#4]\n" //0DD3 context_set_reg 1
-        "LDR R2, [R4,#8]\n" //0DD3 context_set_reg 2
-        "LDR R3, [R4,#0xC]\n" //0DD3 context_set_reg 3
-        "BLX R5\n"           //0DD2 call func
-        "STR R0, [R4]\n" //0DD4 return value 
+        "LDR R0, [R4]\n"        // 0DD3 context_set_reg 0
+        "LDR R1, [R4, #4]\n"    // 0DD3 context_set_reg 1
+        "LDR R2, [R4, #8]\n"    // 0DD3 context_set_reg 2
+        "LDR R3, [R4, #0xC]\n"  // 0DD3 context_set_reg 3
+        "BLX R5\n"              // 0DD2 call func
+        "STR R0, [R4]\n"        // 0DD4 return value 
         "ADD SP, #0xB8\n"
-        "POP {R4-R7,PC}\n"
+        "POP {R4-R7, PC}\n"
     );
 }
 
@@ -592,7 +592,7 @@ extern "C" void OnGameCrash(const char* szLibName, int sig, int code, uintptr_t 
         int callNum = 0;
 
         cleo->PrintToCleoLog("The data below is not guaranteed to be correct!");
-        cleo->PrintToCleoLog("Calling history:");
+        cleo->PrintToCleoLog("CLEO callstack list:");
         for(int i = SCRIPTS_LOG_COUNT-1; i >= 0; --i)
         {
             if(!lastScriptHandle[i] || !lastScriptPC[i]) continue;

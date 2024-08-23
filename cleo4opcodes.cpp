@@ -67,6 +67,10 @@ void (*CLEO_STD_AddToGxtStorage)(CLEO_STD_String*, CLEO_STD_String*);
 void (*CLEO_STD_DeallocStorage)(CLEO_STD_String*);
 GXTChar* (*TextGet)(void*, const char*);
 void* (*SpawnCar)(int);
+bool (*IsHIDPressed)(int hidMapping, float* valOut);
+void (*ClearAllCrosshairs)();
+void (*SetWeaponLockOnTarget)(uintptr_t, void*);
+
 inline bool IsEndSlash(const char* str)
 {
     char *s = (char*)str;
@@ -121,16 +125,32 @@ CLEO_Fn(INT_ADD)
 
 CLEO_Fn(INT_SUB)
 {
-    int a = cleo->ReadParam(handle)->i;
-    int b = cleo->ReadParam(handle)->i;
-    cleo->GetPointerToScriptVar(handle)->i = a - b;
+    if(GetVarArgCount(handle) > 2)
+    {
+        int a = cleo->ReadParam(handle)->i;
+        int b = cleo->ReadParam(handle)->i;
+        cleo->GetPointerToScriptVar(handle)->i = a - b;
+    }
+    else // default opcode (screw you WarDrum)
+    {
+        ClearAllCrosshairs();
+        SetWeaponLockOnTarget(FindPlayerPed(-1), NULL);
+    }
 }
 
 CLEO_Fn(INT_MUL)
 {
-    int a = cleo->ReadParam(handle)->i;
-    int b = cleo->ReadParam(handle)->i;
-    cleo->GetPointerToScriptVar(handle)->i = a * b;
+    if(GetVarArgCount(handle) > 2)
+    {
+        int a = cleo->ReadParam(handle)->i;
+        int b = cleo->ReadParam(handle)->i;
+        cleo->GetPointerToScriptVar(handle)->i = a * b;
+    }
+    else // default opcode (screw you WarDrum)
+    {
+        int hidNum = cleo->ReadParam(handle)->i;
+        UpdateCompareFlag(handle, IsHIDPressed(hidNum, NULL));
+    }
 }
 
 CLEO_Fn(INT_DIV)
@@ -527,35 +547,52 @@ CLEO_Fn(GET_CAR_NUMBER_OF_GEARS)
 {
     int ref = cleo->ReadParam(handle)->i;
     int vehiclePtr = GetVehicleFromRef(ref);
-    cleo->GetPointerToScriptVar(handle)->i = *(uint8_t*)(*(int*)(vehiclePtr + 904) + 118);
+    if(*nGameIdent == GTASA)
+    {
+        cleo->GetPointerToScriptVar(handle)->i = *(uint8_t*)(*(int*)(vehiclePtr + 904) + 118);
+    }
+    else
+    {
+        cleo->GetPointerToScriptVar(handle)->i = *(uint8_t*)(*(int*)(vehiclePtr + 292) + 126);
+    }
 }
 
 CLEO_Fn(GET_CAR_CURRENT_GEAR)
 {
     int ref = cleo->ReadParam(handle)->i;
     int vehiclePtr = GetVehicleFromRef(ref);
-    cleo->GetPointerToScriptVar(handle)->i = *(uint8_t*)(vehiclePtr + 1216);
+    cleo->GetPointerToScriptVar(handle)->i = *(uint8_t*)(vehiclePtr + ValueForGame(0, 524, 1216));
 }
 
 CLEO_Fn(IS_CAR_SIREN_ON)
 {
     int ref = cleo->ReadParam(handle)->i;
     int vehiclePtr = GetVehicleFromRef(ref);
-    UpdateCompareFlag(handle, *(uint8_t*)(vehiclePtr + 1073) >> 7);
+    if(*nGameIdent == GTASA) UpdateCompareFlag(handle, *(uint8_t*)(vehiclePtr + 1073) >> 7);
+    else UpdateCompareFlag(handle, *(bool*)(vehiclePtr + 585));
 }
 
 CLEO_Fn(IS_CAR_ENGINE_ON)
 {
     int ref = cleo->ReadParam(handle)->i;
     int vehiclePtr = GetVehicleFromRef(ref);
-    UpdateCompareFlag(handle, (*(uint8_t *)(vehiclePtr + 1068) >> 4) & 1);
+    if(*nGameIdent == GTASA) UpdateCompareFlag(handle, (*(uint8_t *)(vehiclePtr + 1068) >> 4) & 1);
+    else UpdateCompareFlag(handle, *(uint8_t *)(vehiclePtr + 509) & 0x10);
 }
 
 CLEO_Fn(CLEO_SET_CAR_ENGINE_ON)
 {
     int vehiclePtr = GetVehicleFromRef(cleo->ReadParam(handle)->i);
     bool state = cleo->ReadParam(handle)->i != 0;
-    *(int*)(vehiclePtr + 1068) = *(int*)(vehiclePtr + 1068) & 0xFFFFFFEF | (16 * (state & 1));
+    if(*nGameIdent == GTASA) 
+    {
+        *(int*)(vehiclePtr + 1068) = *(int*)(vehiclePtr + 1068) & 0xFFFFFFEF | (16 * (state & 1));
+    }
+    else
+    {
+        if(state) *(uint8_t *)(vehiclePtr + 509) |= 0x10;
+        else      *(uint8_t *)(vehiclePtr + 509) &= ~0x10;
+    }
 }
 
 CLEO_Fn(PUSH_STRING_TO_VAR)
@@ -1243,6 +1280,11 @@ CLEO_Fn(FIND_CLOSE)
     delete scan;
 }
 
+CLEO_Fn(POP_FLOAT)
+{
+    cleo->GetPointerToScriptVar(handle)->f = 0.0f;
+}
+
 CLEO_Fn(GET_VEHICLE_REF)
 {
     int ref = cleo->ReadParam(handle)->i;
@@ -1532,6 +1574,9 @@ void Init4Opcodes()
         SET_TO(AddMessage_SA, cleo->GetMainLibrarySymbol("_ZN9CMessages10AddMessageEPKcPtjtb"));
         SET_TO(AddMessageJumpQ_SA, cleo->GetMainLibrarySymbol("_ZN9CMessages15AddMessageJumpQEPKcPtjtb"));
         SET_TO(SpawnCar, cleo->GetMainLibrarySymbol("_ZN6CCheat12VehicleCheatEi"));
+        SET_TO(IsHIDPressed, cleo->GetMainLibrarySymbol("_ZN4CHID9IsPressedE10HIDMappingPf"));
+        SET_TO(ClearAllCrosshairs, cleo->GetMainLibrarySymbol("_ZN14CWeaponEffects18ClearAllCrosshairsEv"));
+        SET_TO(SetWeaponLockOnTarget, cleo->GetMainLibrarySymbol("_ZN4CPed21SetWeaponLockOnTargetEP7CEntity"));
     }
     else
     {
@@ -1589,17 +1634,14 @@ void Init4Opcodes()
     {
         CLEO_RegisterOpcode(0x0AB5, STORE_CLOSEST_ENTITIES); // 0AB5=3,store_actor %1d% closest_vehicle_to %2d% closest_ped_to %3d%
         CLEO_RegisterOpcode(0x0AB6, GET_TARGET_BLIP_COORDS); // 0AB6=3,store_target_marker_coords_to %1d% %2d% %3d% // IF and SET
-        CLEO_RegisterOpcode(0x0AB7, GET_CAR_NUMBER_OF_GEARS); // 0AB7=2,get_vehicle %1d% number_of_gears_to %2d%
-        CLEO_RegisterOpcode(0x0AB8, GET_CAR_CURRENT_GEAR); // 0AB8=2,get_vehicle %1d% current_gear_to %2d%
     }
+    CLEO_RegisterOpcode(0x0AB7, GET_CAR_NUMBER_OF_GEARS); // 0AB7=2,get_vehicle %1d% number_of_gears_to %2d%
+    CLEO_RegisterOpcode(0x0AB8, GET_CAR_CURRENT_GEAR); // 0AB8=2,get_vehicle %1d% current_gear_to %2d%
     // 0AB9, 0ABB-0ABC - AudioStreams
     //CLEO_RegisterOpcode(0x0ABA, TERMINATE_ALL_CUSTOM_SCRIPTS_WITH_THIS_NAME); // 
-    if(*nGameIdent == GTASA)
-    {
-        CLEO_RegisterOpcode(0x0ABD, IS_CAR_SIREN_ON); // 0ABD=1,vehicle %1d% siren_on
-        CLEO_RegisterOpcode(0x0ABE, IS_CAR_ENGINE_ON); // 0ABE=1,vehicle %1d% engine_on
-        CLEO_RegisterOpcode(0x0ABF, CLEO_SET_CAR_ENGINE_ON); // 0ABF=2,set_vehicle %1d% engine_state_to %2d%
-    }
+    CLEO_RegisterOpcode(0x0ABD, IS_CAR_SIREN_ON); // 0ABD=1,vehicle %1d% siren_on
+    CLEO_RegisterOpcode(0x0ABE, IS_CAR_ENGINE_ON); // 0ABE=1,vehicle %1d% engine_on
+    CLEO_RegisterOpcode(0x0ABF, CLEO_SET_CAR_ENGINE_ON); // 0ABF=2,set_vehicle %1d% engine_state_to %2d%
 
     // 0AC0 - 0AC5 - AudioStreams
     CLEO_RegisterOpcode(0x0AC6, PUSH_STRING_TO_VAR); // 0DD0, so this one is CUSTOM: 0AC6=2,push_string %1d% var %2d%
@@ -1642,8 +1684,7 @@ void Init4Opcodes()
     CLEO_RegisterOpcode(0x0AE6, FIND_FIRST_FILE); // 0AE6=3,%2d% = find_first_file %1d% get_filename_to %3d% //IF and SET
     CLEO_RegisterOpcode(0x0AE7, FIND_NEXT_FILE); // 0AE7=2,%2d% = find_next_file %1d% //IF and SET
     CLEO_RegisterOpcode(0x0AE8, FIND_CLOSE); // 0AE8=1,find_close %1d%
-    // popfloat? we have a different logic of FPU
-    //CLEO_RegisterOpcode(0x0AE9, POP_FLOAT); // 
+    CLEO_RegisterOpcode(0x0AE9, POP_FLOAT); // 0AE9=1,pop_float store_to %1d% // popfloat? we have a different FPU logic
     CLEO_RegisterOpcode(0x0AEA, GET_PED_REF); // 0AEA=2,%2d% = actor_struct %1d% handle
     CLEO_RegisterOpcode(0x0AEB, GET_VEHICLE_REF); // 0AEB=2,%2d% = car_struct %1d% handle
     CLEO_RegisterOpcode(0x0AEC, GET_OBJECT_REF); // 0AEC=2,%2d% = object_struct %1d% handle

@@ -30,6 +30,9 @@ struct ScriptAddonInfo
     uint16_t isCustom : 1; // [0-1]
     uint16_t debugMode : 1; // [0-1]
     uint16_t enableThreadSaving : 1; // [0-1]
+
+    // GetInterfaceVersion() == 2
+    
 };
 
 
