@@ -28,7 +28,7 @@ ISAUtils* sautils = nullptr;
 
 MYMODCFG(net.rusjj.cleolib, CLEO Library, 2.0.1.6, Alexander Blade & RusJJ & XMDS)
 BEGIN_DEPLIST()
-    ADD_DEPENDENCY_VER(net.rusjj.aml, 1.2.2)
+    ADD_DEPENDENCY_VER(net.rusjj.aml, 1.2.3)
 END_DEPLIST()
 
 inline size_t __strlen(const char *str)
